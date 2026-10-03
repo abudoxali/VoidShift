@@ -11,7 +11,7 @@ import { useExperience } from '../store/experienceStore'
  */
 export function Stage() {
   const tier = useExperience((s) => s.quality.tier)
-  const debug = useExperience((s) => s.debug)
+  const debug = useExperience((s) => s.debug || s.review)
   const deviceDpr = useDevicePixelRatio()
   const dpr = Math.min(Math.max(deviceDpr, 1), QUALITY_PROFILES[tier].maxDpr)
 

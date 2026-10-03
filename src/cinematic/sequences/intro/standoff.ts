@@ -1,23 +1,26 @@
 import { shot } from '../../camera/shot'
 import type { PhaseSegment } from '../../engine/CinematicTimeline'
-import { pose } from './moves'
+import { pose, tween } from './moves'
 
 /**
- * BEAT 03 — STANDOFF (1.4 s). A push on the two-shot, then a cut to VOID's slit eye as it raises
- * its guard; the rims swell. Stillness before the first move.
+ * SCENE 02 — STANDOFF (1.3 s). Close inserts: AERON's eyes; NOX's eyes; AERON's guard rising
+ * and his centre of gravity sinking. NOX raises his guard. No text.
  */
 export const standoffSegment: PhaseSegment = {
-  phase: 'SPAWN',
-  duration: 1.4,
+  phase: 'REVEAL',
+  duration: 1.3,
   build(ctx) {
     const { tl, state, at } = ctx
-    shot(ctx, 'WIDE_PUSH', 0, { duration: 0.75, ease: 'sine.in' })
-    shot(ctx, 'STANDOFF_VOID', 0.75)
-    shot(ctx, 'STANDOFF_VOID_PUSH', 0.77, { duration: 0.63, ease: 'sine.out' })
-    pose(ctx, 'void', 'guard', 0.82, 0.4, 'power3.out')
-    // The survey axes recede: from here on the floor only reads where light lands on it.
-    tl.to(state.world, { axis: 0.12, duration: 1.2, ease: 'sine.inOut' }, at(0))
-    tl.to(state.lights, { rimVelocity: 1.35, rimVoid: 1.3, duration: 0.7, ease: 'sine.inOut' }, at(0.2))
-    tl.to(state.lights, { rimVelocity: 1, rimVoid: 1, duration: 0.5, ease: 'sine.inOut' }, at(0.9))
+    ctx.scene('standoff', 'Standoff', 0)
+    shot(ctx, 'AERON_EYES', 0)
+    pose(ctx, 'velocity', 'guard', 0.05, 0.32, 'power2.out')
+    tween(ctx, 'velocity', { energy: 0.6 }, 0.0, 0.3)
+    shot(ctx, 'NOX_EYES', 0.38)
+    pose(ctx, 'void', 'guard', 0.38, 0.38, 'power2.inOut')
+    tween(ctx, 'void', { energy: 0.5 }, 0.38, 0.3)
+    shot(ctx, 'AERON_STANCE_LOW', 0.78)
+    pose(ctx, 'velocity', 'lowGuard', 0.8, 0.4, 'power2.inOut')
+    tl.to(state.world, { reveal: 40, structures: 1, atmosphere: 0.9, duration: 1.2, ease: 'power1.inOut' }, at(0))
+    tl.to(state.lights, { key: 0.75, ambient: 0.3, rimVelocity: 1.2, rimVoid: 1.1, duration: 1.0 }, at(0.2))
   },
 }

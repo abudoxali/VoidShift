@@ -232,3 +232,53 @@ body,
     transition: none;
   }
 }
+
+/* ── Review mode (?review=1): developer panel, never shown to visitors ───────────────────── */
+.review {
+  position: fixed;
+  bottom: 58px;
+  right: 12px;
+  z-index: 30;
+  width: min(360px, calc(100vw - 24px));
+  padding: 8px;
+  display: grid;
+  gap: 6px;
+  background: rgba(4, 10, 12, 0.78);
+  border: 1px solid rgba(120, 220, 255, 0.25);
+  font: 11px/1.3 'JetBrains Mono', ui-monospace, monospace;
+  color: #bfe9f4;
+  pointer-events: auto;
+}
+.review__row { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.review__readout { justify-content: space-between; letter-spacing: 0.04em; }
+.review__scene { color: #fff; }
+.review__shot { color: #7fd8ef; }
+.review__scrub { width: 100%; accent-color: #6fd6f0; }
+.review button, .review select {
+  font: inherit;
+  color: inherit;
+  background: rgba(20, 40, 46, 0.9);
+  border: 1px solid rgba(120, 220, 255, 0.28);
+  padding: 4px 7px;
+  cursor: pointer;
+}
+.review button[aria-pressed='true'], .review button.is-active { background: rgba(60, 150, 175, 0.55); color: #fff; }
+.review__scenes button { padding: 3px 6px; }
+.camdebug { position: fixed; inset: 0; z-index: 25; pointer-events: none; }
+.camdebug__thirds {
+  position: absolute;
+  inset: 9.6% 0;
+  background:
+    linear-gradient(to right, transparent calc(33.33% - 0.5px), rgba(255, 255, 255, 0.25) 33.33%, transparent calc(33.33% + 0.5px), transparent calc(66.66% - 0.5px), rgba(255, 255, 255, 0.25) 66.66%, transparent calc(66.66% + 0.5px)),
+    linear-gradient(to bottom, transparent calc(33.33% - 0.5px), rgba(255, 255, 255, 0.25) 33.33%, transparent calc(33.33% + 0.5px), transparent calc(66.66% - 0.5px), rgba(255, 255, 255, 0.25) 66.66%, transparent calc(66.66% + 0.5px));
+  outline: 1px dashed rgba(255, 210, 90, 0.6);
+}
+.camdebug__label {
+  position: absolute;
+  left: 12px;
+  top: 52px;
+  font: 11px/1.3 'JetBrains Mono', ui-monospace, monospace;
+  color: #ffd76a;
+  background: rgba(0, 0, 0, 0.6);
+  padding: 3px 6px;
+}

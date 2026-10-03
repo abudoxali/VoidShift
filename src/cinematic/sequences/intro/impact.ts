@@ -4,14 +4,15 @@ import type { PhaseSegment } from '../../engine/CinematicTimeline'
 import { MARKS } from './marks'
 import { arc, burst, flash, impactFrame, moveTo, pose, set, shakeIf, tween } from './moves'
 
-/**
- * BEAT 09 — IMPACT → EXPLOSION → AFTERMATH (4.8 s).
- * attack → contact (impact frame, hit-stop) → expansion (shockwave, rays, debris of geometry
- * and code, crater, light burst, camera trauma) → decay (light falls off, debris arcs, some of it
- * pulled back into VOID) → aftermath (haze, VELOCITY landed, VOID down, the world still humming).
- */
-const IMPACT_DURATION = 4.8
+const IMPACT_DURATION = 4.6
 
+/**
+ * SCENES 12 + 13 — IMPACT → AFTERMATH (4.6 s).
+ * The order matters: the fighters stay readable first. Contact spark, NOX's recoil starting
+ * (0–0.08 s) → two silhouette impact frames → the white-cyan flash → radial shockwave, light
+ * blast, code + geometric debris, crater, dust → decay. NOX is driven down to one knee; AERON
+ * rebounds and lands; the scarf falls; the world fades toward the next chapter.
+ */
 export const impactSegment: PhaseSegment = {
   phase: 'IMPACT',
   duration: IMPACT_DURATION,
@@ -19,69 +20,64 @@ export const impactSegment: PhaseSegment = {
     const { tl, state, at, motion } = ctx
     const i = state.impact
     const c = MARKS.contact
+    ctx.scene('impact', 'Impact', 0)
 
-    // Contact.
+    // 1. Contact: a tight spark, both bodies readable. A tiny hold.
     shot(ctx, 'IMPACT_HERO', 0)
     tl.set(i.position, { x: c.x, y: c.y, z: c.z }, at(0))
-    ctx.cue(CUES.IMPACT, 0, { x: c.x, y: c.y, z: c.z })
-    // Impact frame: two inverted frames of pure silhouette. The core's light is gone in that
-    // instant (it has been spent); the explosion's light arrives on the frame after.
-    impactFrame(ctx, 0, 2)
-    tl.set(state.core, { charge: 0, overload: 0 }, at(0))
-    flash(ctx, 0.067, 0.8, 0.28)
     tl.set(i, { age: 0 }, at(0))
     tl.to(i, { age: IMPACT_DURATION, duration: IMPACT_DURATION, ease: 'none' }, at(0))
-    tl.to(i, { light: 1, duration: 0.02 }, at(0.067))
-    tl.to(i, { light: 0.12, duration: 2.2, ease: 'power3.out' }, at(0.15))
-    tl.to(state.fx, { radial: 1, duration: 0.04 }, at(0.03))
-    tl.to(state.fx, { radial: 0, duration: 1.3, ease: 'power2.out' }, at(0.25))
-    tl.to(state.fx, { lens: 1, duration: 0.04 }, at(0))
-    tl.to(state.fx, { lens: 0.2, duration: 1.6 }, at(0.3))
-    shakeIf(ctx, 0.0, 1.0)
+    ctx.cue(CUES.IMPACT, 0, { x: c.x, y: c.y, z: c.z })
+    burst(ctx, BURST.SPARKS, c, 0.0, 0.7)
+    tween(ctx, 'void', { hit: 1, energy: 1 }, 0, 0.03)
+    pose(ctx, 'void', 'recoil', 0.02, 0.12, 'power3.out')
 
-    // Hit-stop: both fighters hold for ~4 frames, then the expansion.
-    pose(ctx, 'void', 'recoil', 0.0, 0.05, 'expo.out')
-    tween(ctx, 'void', { hit: 1, phase: 0.6, energy: 1 }, 0, 0.03)
-    ctx.cue(CUES.EXPLOSION, 0.13, { x: c.x, y: c.y, z: c.z })
-    burst(ctx, BURST.SPARKS, c, 0.13, 2.2)
-    ctx.cue(CUES.GRID_RIPPLE, 0.13, { x: c.x, z: c.z, strength: 2.0 })
-    tl.to(i, { shock: 1, duration: 1.1, ease: 'power2.out' }, at(0.13))
-    tl.to(i, { crater: 1, duration: 0.22, ease: 'expo.out' }, at(0.13))
-    tl.to(i, { smoke: 1, duration: 2.4, ease: 'power2.out' }, at(0.3))
-    tl.to(i, { smoke: 0.35, duration: 1.8, ease: 'sine.inOut' }, at(2.7))
-    shot(ctx, 'IMPACT_WIDE', 0.14)
+    // 2. Impact frames (silhouettes), the core spent.
+    impactFrame(ctx, 0.08, 2)
+    tl.set(state.core, { charge: 0, overload: 0 }, at(0.08))
 
-    // VOID is driven into the floor and folds.
-    moveTo(ctx, 'void', MARKS.recoilTo, 0.13, 0.5, 'power3.out')
-    tween(ctx, 'void', { hit: 0, energy: 0.3 }, 0.6, 1.2)
-    tween(ctx, 'void', { phase: 0.12 }, 0.8, 1.2)
-    pose(ctx, 'void', 'collapse', 0.75, 0.8, 'power2.out')
+    // 3. Flash → expansion.
+    flash(ctx, 0.15, 0.75, 0.3)
+    tl.to(i, { light: 1, duration: 0.02 }, at(0.15))
+    tl.to(i, { light: 0.12, duration: 2.0, ease: 'power3.out' }, at(0.3))
+    tl.to(state.fx, { radial: 1, duration: 0.04 }, at(0.15))
+    tl.to(state.fx, { radial: 0, duration: 1.1, ease: 'power2.out' }, at(0.3))
+    ctx.cue(CUES.EXPLOSION, 0.15, { x: c.x, y: c.y, z: c.z })
+    burst(ctx, BURST.SPARKS, c, 0.15, 2.0)
+    ctx.cue(CUES.GRID_RIPPLE, 0.15, { x: c.x, z: c.z, strength: 2.0 })
+    tl.to(i, { shock: 1, duration: 1.1, ease: 'power2.out' }, at(0.15))
+    tl.to(i, { crater: 1, duration: 0.22, ease: 'expo.out' }, at(0.15))
+    tl.to(i, { smoke: 1, duration: 2.0, ease: 'power2.out' }, at(0.3))
+    tl.to(i, { smoke: 0.4, duration: 1.6, ease: 'sine.inOut' }, at(2.4))
+    tl.to(i, { crater: 0.75, duration: 2.0, ease: 'sine.inOut' }, at(2.4))
+    shakeIf(ctx, 0.15, 1.0)
+    shot(ctx, 'IMPACT_WIDE', 0.3)
 
-    // VELOCITY rebounds, rights itself, lands.
-    if (motion.reduced) {
-      moveTo(ctx, 'velocity', MARKS.heroLanding, 0.2, 1.0, 'power2.inOut')
-      tween(ctx, 'velocity', { pitch: 0 }, 0.2, 0.8, 'power2.inOut')
-    } else {
-      arc(ctx, 'velocity', MARKS.heroLanding, 2.6, 0.13, 0.95)
-      tween(ctx, 'velocity', { pitch: Math.PI * 2 }, 0.13, 0.8, 'power2.out')
-      set(ctx, 'velocity', { pitch: 0 }, 0.94)
-    }
-    pose(ctx, 'velocity', 'flip', 0.2, 0.12)
-    pose(ctx, 'velocity', 'heroLand', 1.0, 0.14, 'power3.out')
-    ctx.cue(CUES.LAND, 1.08)
-    burst(ctx, BURST.DUST, MARKS.heroLanding, 1.08, 1.2)
-    shakeIf(ctx, 1.08, 0.3)
-    set(ctx, 'velocity', { trails: 0 }, 1.2)
-    tween(ctx, 'velocity', { energy: 0.6 }, 1.2, 1.0)
+    // NOX: driven down to one knee.
+    moveTo(ctx, 'void', MARKS.noxDown, 0.15, 0.5, 'power3.out')
+    tween(ctx, 'void', { hit: 0, energy: 0.3 }, 0.6, 1.0)
+    tween(ctx, 'void', { phase: 0.12 }, 0.7, 1.0)
+    pose(ctx, 'void', 'collapse', 0.7, 0.7, 'power2.out')
+
+    // AERON: rebounds off the contact, rights himself, lands.
+    if (motion.reduced) moveTo(ctx, 'velocity', MARKS.aeronLanding, 0.2, 0.9, 'sine.inOut')
+    else arc(ctx, 'velocity', MARKS.aeronLanding, 2.1, 0.15, 0.85)
+    tween(ctx, 'velocity', { pitch: 0 }, 0.15, 0.6, 'power2.out')
+    pose(ctx, 'velocity', 'airTuck', 0.2, 0.15, 'power2.out')
+    pose(ctx, 'velocity', 'heroLand', 0.95, 0.12, 'power3.out')
+    ctx.cue(CUES.LAND, 1.0)
+    burst(ctx, BURST.DUST, MARKS.aeronLanding, 1.0, 1.0)
+    shakeIf(ctx, 1.0, 0.25)
+    set(ctx, 'velocity', { trails: 0 }, 1.1)
+    tween(ctx, 'velocity', { energy: 0.5 }, 1.1, 1.0)
 
     // Aftermath.
-    shot(ctx, 'AFTERMATH', 1.7)
-    ctx.cue(CUES.AFTERMATH, 1.7)
-    shot(ctx, 'AFTERMATH_PUSH', 1.72, { duration: IMPACT_DURATION - 1.72, ease: 'sine.inOut' })
-    tl.to(state.lights, { key: 0.55, ambient: 0.35, duration: 2.0 }, at(1.7))
-    pose(ctx, 'velocity', 'idle', 2.9, 1.0, 'power2.inOut')
-    tl.to(i, { crater: 0.75, duration: 2.2, ease: 'sine.inOut' }, at(2.4))
-    // The world settles toward darkness: the end of the intro.
-    tl.to(state.fx, { exposure: 0.32, duration: 1.5, ease: 'sine.in' }, at(IMPACT_DURATION - 1.5))
+    ctx.scene('aftermath', 'Aftermath', 2.0)
+    shot(ctx, 'AFTERMATH', 2.0)
+    shot(ctx, 'AFTERMATH_PUSH', 2.02, { duration: IMPACT_DURATION - 2.02, ease: 'sine.inOut' })
+    ctx.cue(CUES.AFTERMATH, 2.0)
+    pose(ctx, 'velocity', 'recover', 2.6, 0.9, 'power2.inOut')
+    tl.to(state.lights, { key: 0.45, ambient: 0.25, duration: 1.6 }, at(2.0))
+    tl.to(state.fx, { exposure: 0.3, duration: 1.3, ease: 'sine.in' }, at(IMPACT_DURATION - 1.3))
   },
 }

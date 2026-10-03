@@ -28,13 +28,15 @@ import {
 import { useCinematicEngine } from '../../engine/CinematicContext'
 import { FRAME_STAGE } from '../../engine/frameStages'
 import { useWorld } from '../../scenes/WorldContext'
+import { useExperience } from '../../../store/experienceStore'
 import { createRng } from '../../../utils/random'
 import { useGlyphAtlasUniforms } from '../typography/GlyphLayer'
 import { glyphIndex } from '../typography/glyphs'
 import { createDebris, debrisAt } from './debris'
 import { domeFrag, domeVert, glyphDebrisFrag, glyphDebrisVert, smokeFrag, smokeVert } from './impactShaders'
 
-const TOKENS = ['{', '}', '[', ']', '<', '>', '0', '1', 'Δ', 'λ', '0XFF', 'NULL', 'VECTOR', '∅', '/', '#', '01', '10', '<>', '{}']
+// Code as material: symbols and fragments, never readable words competing with the fight.
+const TOKENS = ['{', '}', '[', ']', '<', '>', '0', '1', 'Δ', 'λ', '∅', '/', '#', '01', '10', '<>', '{}', '=', '*', '|']
 const SMOKE = 40
 
 /**
@@ -151,7 +153,7 @@ export function Impact() {
   useFrame(() => {
     const im = engine.state.impact
     const age = im.age
-    const active = age >= 0
+    const active = age >= 0 && useExperience.getState().fx === 'full'
     parts.root.visible = active
     if (!active) {
       parts.light.intensity = 0
@@ -213,7 +215,7 @@ export function Impact() {
         fade *= 1 - pull * 0.7
       }
       parts.gOffset.setXYZ(i, scratch.p.x, scratch.p.y, scratch.p.z)
-      const size = 0.09 + piece.size * 0.6
+      const size = 0.06 + piece.size * 0.35
       parts.gData.setXYZW(i, g.char, g.col, size, Math.max(0, fade) * Math.min(1, age * 12))
       parts.gSpin.setX(i, Math.sin(angle) * 0.6)
     })

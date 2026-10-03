@@ -1,4 +1,6 @@
+import { useFrame } from '@react-three/fiber'
 import { useEffect, useMemo } from 'react'
+import { useExperience } from '../../../store/experienceStore'
 import { AdditiveBlending, LineSegments, ShaderMaterial, Sphere, Vector3, Vector4 } from 'three'
 import { useCinematicEngine } from '../../engine/CinematicContext'
 import { CUES } from '../../engine/cues'
@@ -91,6 +93,8 @@ export function Bursts() {
     material.uniforms.uDensity.value = profile.tier === 'LITE' ? 0.5 : 1
     setParticleCount(geometry, SLOTS * PER_SLOT)
   }, [geometry, material, profile.tier])
+
+  useFrame(() => void (lines.visible = useExperience.getState().fx === 'full'))
 
   return <primitive name="bursts" object={lines} />
 }

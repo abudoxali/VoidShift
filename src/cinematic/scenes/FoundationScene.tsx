@@ -1,6 +1,6 @@
 import { CinematicCameraRig } from '../camera/CinematicCameraRig'
-import { VelocityFighter } from '../characters/VelocityFighter/VelocityFighter'
-import { VoidFighter } from '../characters/VoidFighter/VoidFighter'
+import { AeronFighter } from '../characters/Aeron/AeronFighter'
+import { NoxFighter } from '../characters/Nox/NoxFighter'
 import { Impact } from '../effects/impact/Impact'
 import { Bursts } from '../effects/particles/Bursts'
 import { PostPipeline } from '../effects/post/PostPipeline'
@@ -27,8 +27,8 @@ export function FoundationScene() {
       <Structures />
       <BackgroundField />
       <GlyphLayer>
-        <VelocityFighter />
-        <VoidFighter />
+        <AeronFighter />
+        <NoxFighter />
         <Anchor />
         <Impact />
         <Bursts />

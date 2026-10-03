@@ -29,7 +29,7 @@ void main() {
   vec3 cyan = vec3(0.35, 1.6, 2.4);
   vec3 white = vec3(3.2, 3.4, 3.6);
   vec3 col = mix(cyan * (0.6 + bands * 1.8), white, pow(facing, 2.2));
-  col += white * uOverload * 1.5;
+  col += white * uOverload * 0.6;
   float alpha = (0.35 + facing * 0.65) * smoothstep(0.0, 0.15, uCharge);
   gl_FragColor = vec4(col * alpha, 1.0);
 }`
@@ -82,7 +82,7 @@ uniform float uOverload;
 varying float vAlpha;
 void main() {
   float life = fract(uTime * (0.6 + aSeed.x * 0.8) + aSeed.y);
-  float r = mix(0.95, 0.06, life * life) * (0.4 + uCharge * 0.6);
+  float r = mix(0.42, 0.04, life * life) * (0.4 + uCharge * 0.6);
   float ang = aSeed.z * 6.2831 + life * (5.0 + aSeed.w * 4.0);
   float tilt = (aSeed.w - 0.5) * 2.2;
   vec3 p = vec3(cos(ang) * r, sin(ang) * r * sin(tilt), sin(ang) * r * cos(tilt));

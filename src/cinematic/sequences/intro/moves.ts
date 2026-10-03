@@ -90,3 +90,17 @@ export function shakeIf(ctx: SegmentContext, local: number, amount: number): voi
   const a = amount * ctx.motion.shake
   if (a > 0) ctx.cue(CUES.CAMERA_SHAKE, local, { amount: a })
 }
+
+/**
+ * An explosive displacement: expo-in travel with directional speed lines. Under reduced motion
+ * it becomes a dissolve / reconstruct (`blink`) so nothing crosses the screen at speed.
+ */
+export function dash(ctx: SegmentContext, id: FighterId, to: V3, local: number, duration: number, angle = 0): void {
+  if (ctx.motion.reduced) {
+    blink(ctx, id, to, local, Math.max(0.1, duration * 0.6))
+    return
+  }
+  ctx.cue(CUES.VELOCITY_DASH, local)
+  moveTo(ctx, id, to, local, duration, 'expo.in')
+  speedLines(ctx, local, duration, angle, 0.7)
+}

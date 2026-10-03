@@ -1,4 +1,5 @@
 import { useFrame } from '@react-three/fiber'
+import { useExperience } from '../../store/experienceStore'
 import { useEffect, useMemo } from 'react'
 import { AdditiveBlending, ShaderMaterial, Sphere, Vector3 } from 'three'
 import { buildParticleGeometry, setParticleCount } from '../effects/particles/particleGeometry'
@@ -116,7 +117,7 @@ export function BackgroundField() {
   useEffect(() => () => material.dispose(), [material])
 
   useFrame(() => {
-    material.uniforms.uReveal.value = engine.state.world.reveal
+    material.uniforms.uReveal.value = useExperience.getState().fx === 'full' ? engine.state.world.reveal : 0
   }, FRAME_STAGE.WORLD)
 
   return <points name="background" geometry={geometry} material={material} frustumCulled={false} dispose={null} />

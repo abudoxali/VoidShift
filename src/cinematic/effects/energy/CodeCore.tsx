@@ -22,6 +22,7 @@ import {
 import type { CharacterRig } from '../../animation/CharacterRig'
 import { useCinematicEngine } from '../../engine/CinematicContext'
 import { FRAME_STAGE } from '../../engine/frameStages'
+import { useExperience } from '../../../store/experienceStore'
 import { createRng } from '../../../utils/random'
 import { coreFrag, coreVert, haloFrag, particleFrag, particleVert, ringFrag, ringVert } from './codeCoreShaders'
 
@@ -109,6 +110,12 @@ export function CodeCore({ rig }: { rig: CharacterRig }) {
     }
     const t = engine.elapsed
     const over = c.overload
+    const fxOn = useExperience.getState().fx === 'full'
+    parts.arcs.visible = fxOn
+    parts.rings.forEach((r) => (r.visible = fxOn))
+    parts.root.children.forEach((o) => {
+      if ((o as Points).isPoints) o.visible = fxOn
+    })
     parts.uniforms.uTime.value = t
     parts.uniforms.uCharge.value = charge
     parts.uniforms.uOverload.value = over
@@ -120,9 +127,9 @@ export function CodeCore({ rig }: { rig: CharacterRig }) {
     parts.root.position.copy(scratch.hand).add(scratch.off)
 
     const pulse = 1 + Math.sin(t * 22) * 0.04 * charge + over * 0.25 * Math.sin(t * 61)
-    const radius = (0.05 + charge * 0.24 + over * 0.1) * pulse
+    const radius = (0.03 + charge * 0.085 + over * 0.035) * pulse
     parts.core.scale.setScalar(radius)
-    parts.halo.scale.setScalar(radius * (2.3 + over * 1.2))
+    parts.halo.scale.setScalar(radius * (1.9 + over * 0.8))
     parts.rings.forEach((ring, i) => {
       const r = radius * (1.9 + i * 0.55) * (0.6 + 0.4 * Math.min(1, charge * 1.4))
       ring.scale.setScalar(r)
@@ -158,7 +165,7 @@ export function CodeCore({ rig }: { rig: CharacterRig }) {
     parts.arcAttr.needsUpdate = true
     parts.arcMat.opacity = Math.min(1, charge * 1.3)
 
-    parts.light.intensity = charge * 7 + over * 22
+    parts.light.intensity = charge * 3.5 + over * 8
   }, FRAME_STAGE.LATE)
 
   return <primitive name="core" object={parts.root} dispose={null} />

@@ -21,6 +21,7 @@ export const CUES = {
   VOID_COUNTER: 'void:counter',
   LAND: 'fight:land',
   VOID_GRAB: 'void:grab',
+  ANCHOR_FORM: 'anchor:form',
   ANCHOR_THROW: 'anchor:throw',
   ANCHOR_PLANT: 'anchor:plant',
   TELEPORT_OUT: 'teleport:out',

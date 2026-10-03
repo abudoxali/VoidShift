@@ -37,6 +37,7 @@ export function shot(ctx: SegmentContext, name: ShotName | ShotPreset, local: nu
     ctx.tl.set(cam.target, { x: tx, y: ty, z: tz }, t)
     ctx.tl.set(cam, scalars, t)
     ctx.cue(CUES.CAMERA_CUT, local)
+    ctx.shotMark(typeof name === 'string' ? name : 'CUSTOM', local)
     return
   }
 

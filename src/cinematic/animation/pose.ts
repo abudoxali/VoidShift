@@ -11,15 +11,29 @@ import { JOINTS, JOINT_INDEX, type JointName, type Vec3 } from './skeleton'
  *  - thigh                  x < 0 lifts the knee forward
  *  - shin                   x > 0 bends the knee
  */
+export type HandShape = 'open' | 'fist' | 'blade'
+
 export interface PoseSpec {
   /** Hips offset from rest (world units): y crouch (<0), z shift forward. */
   hips?: { x?: number; y?: number; z?: number; rot?: Vec3 }
   joints: Partial<Record<JointName, Vec3>>
+  /** Hand shapes held in this pose (default: open). */
+  hands?: { L?: HandShape; R?: HandShape }
+  /**
+   * Planted feet: ankle targets in character space (x left, y up from the floor, z forward).
+   * The rig solves the leg with two-bone IK (knee toward the front) and keeps the foot level,
+   * using the pose's foot rotation as pitch. Omit for airborne poses (pure FK).
+   */
+  feet?: { L?: Vec3; R?: Vec3 }
 }
 
 export interface CompiledPose {
   readonly rotations: readonly Quaternion[]
   readonly hipsOffset: Vector3
+  readonly handL: HandShape
+  readonly handR: HandShape
+  readonly footL: Vector3 | null
+  readonly footR: Vector3 | null
 }
 
 const euler = new Euler()
@@ -35,7 +49,7 @@ export function compilePose(spec: PoseSpec): CompiledPose {
     euler.set(MathUtils.degToRad(h.rot[0]), MathUtils.degToRad(h.rot[1]), MathUtils.degToRad(h.rot[2]), 'XYZ')
     rotations[JOINT_INDEX.hips].setFromEuler(euler)
   }
-  return { rotations, hipsOffset: new Vector3(h.x ?? 0, h.y ?? 0, h.z ?? 0) }
+  return { rotations, hipsOffset: new Vector3(h.x ?? 0, h.y ?? 0, h.z ?? 0), handL: spec.hands?.L ?? 'open', handR: spec.hands?.R ?? 'open', footL: spec.feet?.L ? new Vector3(...spec.feet.L) : null, footR: spec.feet?.R ? new Vector3(...spec.feet.R) : null }
 }
 
 /** Writes the blend of two compiled poses into `out` (allocation-free). */

@@ -1,6 +1,7 @@
 import { useFrame } from '@react-three/fiber'
 import { createContext, use, useEffect, useRef, useState, type ReactNode, type RefObject } from 'react'
 import { FRAME_STAGE } from '../../engine/frameStages'
+import { useExperience } from '../../../store/experienceStore'
 import { useWorld } from '../../scenes/WorldContext'
 import { GlyphField, type GlyphLabel, type LabelOptions } from './GlyphField'
 import { createGlyphAtlas } from './glyphAtlas'
@@ -34,7 +35,10 @@ export function GlyphLayer({ children }: { children: ReactNode }) {
 
   useEffect(() => () => field.dispose(), [field])
 
-  useFrame(() => field.flush(), FRAME_STAGE.LATE)
+  useFrame(() => {
+    field.mesh.visible = useExperience.getState().fx === 'full'
+    field.flush()
+  }, FRAME_STAGE.LATE)
 
   return (
     <GlyphContext value={field}>

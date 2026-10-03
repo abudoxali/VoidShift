@@ -10,6 +10,19 @@ export interface CueEvent {
   readonly data: Readonly<Record<string, number>>
 }
 
+/** A named scene (story beat) inside the sequence: the unit of review jumps (?scene=…). */
+export interface SceneMarker {
+  readonly id: string
+  readonly label: string
+  readonly time: number
+}
+
+/** A camera cut: the unit of previous / next shot in review mode. */
+export interface ShotMarker {
+  readonly name: string
+  readonly time: number
+}
+
 export interface PhaseSpan {
   readonly phase: CinematicPhase
   readonly start: number
@@ -30,6 +43,10 @@ export interface SegmentContext {
   at(local: number): number
   /** Registers a cue at segment-local time. */
   cue(name: string, local: number, data?: Record<string, number>): void
+  /** Marks the start of a named scene at segment-local time. */
+  scene(id: string, label: string, local: number): void
+  /** Records a camera cut (called by `shot`). */
+  shotMark(name: string, local: number): void
   /**
    * Build-time memory shared by every segment of one compilation (e.g. the last pose scheduled
    * per fighter, so a pose transition knows what it blends from). Never read at playback.
@@ -65,6 +82,8 @@ export class CinematicTimeline {
   readonly duration: number
   readonly phases: readonly PhaseSpan[]
   readonly cues: readonly CueEvent[]
+  readonly scenes: readonly SceneMarker[]
+  readonly shots: readonly ShotMarker[]
   private readonly tl: gsap.core.Timeline
 
   constructor(definition: SequenceDefinition, state: CinematicState, motion: MotionProfile, layout: ViewLayout = 'landscape') {
@@ -73,6 +92,8 @@ export class CinematicTimeline {
     const tl = gsap.timeline({ paused: true, defaults: { ease: 'none' } })
     const phases: PhaseSpan[] = []
     const cues: CueEvent[] = []
+    const scenes: SceneMarker[] = []
+    const shots: ShotMarker[] = []
 
     let cursor = 0
     const memory = new Map<string, unknown>()
@@ -94,6 +115,8 @@ export class CinematicTimeline {
           }
           cues.push({ name, time: start + local, data })
         },
+        scene: (id, label, local) => scenes.push({ id, label, time: start + local }),
+        shotMark: (name, local) => shots.push({ name, time: start + local }),
       }
       segment.build(ctx)
       phases.push({ phase: segment.phase, start, end: start + duration })
@@ -105,6 +128,10 @@ export class CinematicTimeline {
     tl.set({}, {}, cursor)
 
     cues.sort((a, b) => a.time - b.time)
+    scenes.sort((a, b) => a.time - b.time)
+    shots.sort((a, b) => a.time - b.time)
+    this.scenes = scenes
+    this.shots = shots
     this.duration = cursor
     this.phases = phases
     this.cues = cues
@@ -153,6 +180,15 @@ export class CinematicTimeline {
     this.tl.time(t, true)
   }
 
+  /** The scene (or shot) active at `time`: the last marker at or before it. */
+  sceneAt(time: number): SceneMarker | null {
+    return lastAtOrBefore(this.scenes, time)
+  }
+
+  shotAt(time: number): ShotMarker | null {
+    return lastAtOrBefore(this.shots, time)
+  }
+
   phaseAt(time: number): CinematicPhase {
     const phases = this.phases
     for (let i = phases.length - 1; i >= 0; i--) {
@@ -175,4 +211,13 @@ export class CinematicTimeline {
   dispose(): void {
     this.tl.kill()
   }
+}
+
+function lastAtOrBefore<T extends { time: number }>(list: readonly T[], time: number): T | null {
+  let found: T | null = null
+  for (const m of list) {
+    if (m.time <= time + 1e-6) found = m
+    else break
+  }
+  return found
 }

@@ -1,19 +1,14 @@
-import { CinematicEngine } from '../engine/CinematicEngine'
-import type { SequenceDefinition } from '../engine/CinematicTimeline'
-import type { MotionProfile } from '../types'
+import type { CinematicEngine } from '../engine/CinematicEngine'
 import type { CueEvent } from '../engine/CinematicTimeline'
 import { CUES } from '../engine/cues'
 
 /**
  * Cue-driven procedural audio (Web Audio, no assets). Sound is OFF by default and the
  * AudioContext is only created from a user gesture (autoplay policy). Every sound is
- * synthesised from oscillators and seeded noise, scheduled on an explicit clock so the same
- * score can also be rendered offline (`renderOffline`) for previews.
+ * synthesised from oscillators and seeded noise.
  */
 export class AudioDirector {
   private ctx: BaseAudioContext | null = null
-  /** Explicit schedule time (offline rendering); null = the context's live clock. */
-  private clock: number | null = null
   private master: GainNode | null = null
   private droneGain: GainNode | null = null
   private droneLevel = 0
@@ -56,32 +51,7 @@ export class AudioDirector {
   }
 
   private now(): number {
-    return this.clock ?? this.ctx!.currentTime
-  }
-
-  /**
-   * Renders the full score of a sequence offline: cues at their timeline times, drone and core
-   * levels sampled at 60 Hz from a private engine. Deterministic; used for preview exports.
-   */
-  static async renderOffline(sequence: SequenceDefinition, motion?: MotionProfile, sampleRate = 48000): Promise<AudioBuffer> {
-    const engine = new CinematicEngine({ sequence, motion, autoplay: false })
-    const ctx = new OfflineAudioContext(2, Math.ceil((engine.duration + 2) * sampleRate), sampleRate)
-    const director = new AudioDirector()
-    director.build(ctx)
-    director.enabled = true
-    director.master!.gain.value = 0.7
-    let next = 0
-    const cues = engine.cues
-    for (let frame = 0; ; frame++) {
-      const t = Math.min(frame / 60, engine.duration)
-      engine.seek(t)
-      director.clock = t
-      director.sync(engine)
-      while (next < cues.length && cues[next].time <= t) director.handleCue(cues[next++])
-      if (t >= engine.duration) break
-    }
-    engine.dispose()
-    return ctx.startRendering()
+    return this.ctx!.currentTime
   }
 
   handleCue(cue: CueEvent): void {
@@ -123,6 +93,10 @@ export class AudioDirector {
         break
       case CUES.VOID_GRAB:
         this.glide(300, 140, 0.3, 0.15)
+        break
+      case CUES.ANCHOR_FORM:
+        this.sweep(900, 3200, 0.35, 0.06)
+        this.blip(2600, 0.12, 0.05, 0.05)
         break
       case CUES.ANCHOR_THROW:
         this.sweep(1500, 7000, 0.2, 0.3)

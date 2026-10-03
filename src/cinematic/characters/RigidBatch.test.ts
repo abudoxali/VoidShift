@@ -1,18 +1,17 @@
 import { Group, LineSegments, Mesh, MeshBasicMaterial } from 'three'
 import { describe, expect, it } from 'vitest'
 import { CharacterRig } from '../animation/CharacterRig'
-import { VELOCITY_POSES, VELOCITY_PROPORTIONS } from '../animation/poses/velocityPoses'
-import { VOID_PROPORTIONS } from '../animation/poses/voidPoses'
-import { buildVelocityBody } from './VelocityFighter/buildVelocityBody'
-import { buildVoidBody } from './VoidFighter/buildVoidBody'
+import { AERON_POSES } from '../animation/poses/aeronPoses'
+import { AERON_PROPORTIONS, buildAeronBody } from './Aeron/buildAeronBody'
+import { NOX_PROPORTIONS, buildNoxBody } from './Nox/buildNoxBody'
 import { createFighterUniforms } from './fighterMaterials'
 import { RigidBatch } from './RigidBatch'
 
 function velocity() {
-  const rig = new CharacterRig(VELOCITY_PROPORTIONS)
+  const rig = new CharacterRig(AERON_PROPORTIONS)
   const root = new Group()
   root.add(rig.root)
-  buildVelocityBody(rig, createFighterUniforms([1, 1, 1]), VELOCITY_PROPORTIONS)
+  buildAeronBody(rig, createFighterUniforms([1, 1, 1]), AERON_PROPORTIONS)
   return { rig, root }
 }
 
@@ -21,12 +20,12 @@ describe('RigidBatch', () => {
     const { root } = velocity()
     const batch = new RigidBatch(root, 'velocity')
     expect(batch.partCount).toBeGreaterThan(40)
-    expect(batch.drawCount).toBe(3)
-    const v = new CharacterRig(VOID_PROPORTIONS)
+    expect(batch.drawCount).toBeLessThanOrEqual(6)
+    const v = new CharacterRig(NOX_PROPORTIONS)
     const vRoot = new Group()
     vRoot.add(v.root)
-    buildVoidBody(v, createFighterUniforms([1, 1, 1]), VOID_PROPORTIONS)
-    expect(new RigidBatch(vRoot, 'void').drawCount).toBeLessThanOrEqual(5)
+    buildNoxBody(v, createFighterUniforms([1, 1, 1]), NOX_PROPORTIONS)
+    expect(new RigidBatch(vRoot, 'void').drawCount).toBeLessThanOrEqual(8)
   })
 
   it('hides the batched originals but keeps every vertex', () => {
@@ -52,7 +51,7 @@ describe('RigidBatch', () => {
     const { rig, root } = velocity()
     const batch = new RigidBatch(root, 'velocity')
     const data = (batch as unknown as { data: Float32Array }).data.slice()
-    rig.apply(VELOCITY_POSES.idle, VELOCITY_POSES.spinKick, 1, { time: 0, breath: 0, jitter: 0 })
+    rig.apply(AERON_POSES.stand, AERON_POSES.spinKick, 1, { time: 0, breath: 0, jitter: 0 })
     batch.update()
     const after = (batch as unknown as { data: Float32Array }).data
     let changed = 0

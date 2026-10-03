@@ -7,6 +7,7 @@ import { useCinematicEngine } from '../../engine/CinematicContext'
 import { CUES } from '../../engine/cues'
 import { FRAME_STAGE } from '../../engine/frameStages'
 import { useWorld } from '../../scenes/WorldContext'
+import { useExperience } from '../../../store/experienceStore'
 import { SpatialDistortionEffect, type LensParams } from '../distortion/SpatialDistortionEffect'
 import { CinematicGradeEffect, type GradeParams } from './CinematicGradeEffect'
 
@@ -121,8 +122,9 @@ export function PostPipeline() {
     const g = scratch.grade
     g.gate = fx.gate
     g.aspect = size.width / Math.max(size.height, 1)
-    g.flash = fx.flash
-    g.exposure = fx.exposure
+    // FX off (?fx=off): a neutral grade — characters and choreography only.
+    const fxOn = useExperience.getState().fx === 'full'
+    g.flash = fxOn ? fx.flash : 0
     g.grain = profile.grain
     g.invert = fx.invert
     g.speed = fx.speed
@@ -132,10 +134,11 @@ export function PostPipeline() {
     grade.set(g, engine.elapsed)
   }, FRAME_STAGE.LATE)
 
+  const fxOn = useExperience((st) => st.fx === 'full')
   return (
     <EffectComposer multisampling={profile.msaa} frameBufferType={HalfFloatType} enableNormalPass={false}>
-      <primitive object={distortion} dispose={null} />
-      {profile.bloom.enabled ? <primitive object={bloom} dispose={null} /> : <></>}
+      {fxOn ? <primitive object={distortion} dispose={null} /> : <></>}
+      {fxOn && profile.bloom.enabled ? <primitive object={bloom} dispose={null} /> : <></>}
       <primitive object={tone} dispose={null} />
       <primitive object={grade} dispose={null} />
     </EffectComposer>

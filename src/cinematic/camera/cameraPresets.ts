@@ -23,101 +23,80 @@ export interface ShotPreset {
   readonly lead?: number
   /** Portrait composition: overrides applied when the timeline is compiled for portrait. */
   readonly portrait?: Partial<Omit<ShotPreset, 'portrait'>>
+  /**
+   * Framing contract, checked by the framing tests: which fighters must be fully in frame
+   * (head, hands, feet) while this shot is live. Close-ups and inserts declare none.
+   */
+  readonly fullBody?: ReadonlyArray<'velocity' | 'void'>
 }
 
+const still = (position: Vec3Tuple, target: Vec3Tuple, fov: number, extra: Partial<ShotPreset> = {}): ShotPreset => ({ mode: 'FREEZE', position, target, fov, lag: 0, breathe: 0, ...extra })
+
 /**
- * Shot vocabulary for the intro. Fighters stand on the floor; VELOCITY starts at x = -2.3,
- * VOID at x = +2.3. Shots are mostly LOCKED (lag 0 / FREEZE) or short pushes between hard cuts:
- * the camera moves when the action needs it and is still otherwise.
- *
- * Portrait variants look along the line between the fighters (their separation becomes
- * vertical) or frame a single fighter tall.
+ * Shot vocabulary for the fight. Stage: AERON (engine `velocity`) starts at x = -2.0 facing +X,
+ * NOX (`void`) stands at x = +1.6 facing -X; they fight around x ≈ 0.5–1.6. Every shot names its
+ * primary subject, secondary subject and reason. Shots are locked; the edit is done with cuts.
+ * Portrait uses the rig's fit-width adaptation unless a shot declares its own composition.
  */
 export const SHOTS = {
-  // ── Opening ────────────────────────────────────────────────────────────────
-  OPEN_DARK: { mode: 'FREEZE', position: [0.0, 0.32, 6.4], target: [0.4, 0.55, 0], fov: 30, lag: 0, breathe: 0, portrait: { position: [0, 0.5, 7.5], fov: 50 } },
-  OPEN_PUSH: { mode: 'FREEZE', position: [0.0, 0.42, 5.2], target: [0.2, 0.7, 0], fov: 32, lag: 0, breathe: 0, portrait: { position: [0, 0.6, 6.4], fov: 52 } },
-  /** Low 3/4 on VELOCITY as it assembles. */
-  REVEAL_VELOCITY: { mode: 'FREEZE', position: [-0.9, 0.42, 2.5], target: [-2.4, 1.15, 0], fov: 36, lag: 0, breathe: 0, portrait: { position: [-1.3, 0.55, 3.2], target: [-2.3, 1.0, 0], fov: 54 } },
-  REVEAL_VELOCITY_PUSH: { mode: 'FREEZE', position: [-1.15, 0.55, 2.1], target: [-2.35, 1.3, 0], fov: 34, lag: 0, breathe: 0, portrait: { position: [-1.5, 0.65, 2.8], target: [-2.3, 1.15, 0], fov: 52 } },
-  /** Low 3/4 on VOID rising out of the tear. */
-  REVEAL_VOID: { mode: 'FREEZE', position: [0.9, 0.5, 2.7], target: [2.4, 1.3, 0], fov: 34, lag: 0, breathe: 0, portrait: { position: [1.2, 0.6, 3.4], target: [2.3, 1.1, 0], fov: 54 } },
-  REVEAL_VOID_PUSH: { mode: 'FREEZE', position: [1.15, 0.6, 2.3], target: [2.35, 1.45, 0], fov: 32, lag: 0, breathe: 0, portrait: { position: [1.4, 0.7, 3.0], target: [2.3, 1.2, 0], fov: 52 } },
-  /** Establishing wide: both silhouettes, structures behind. */
-  WIDE: { mode: 'FREEZE', position: [0, 1.1, 6.6], target: [0, 1.0, 0], fov: 36, lag: 0, breathe: 0, portrait: { position: [-7.6, 3.4, 5.2], target: [0.6, 0.9, -0.3], fov: 52 } },
-  WIDE_PUSH: { mode: 'FREEZE', position: [0, 1.0, 5.7], target: [0, 1.05, 0], fov: 35, lag: 0, breathe: 0, portrait: { position: [-6.8, 3.1, 4.6], target: [0.6, 0.95, -0.3], fov: 50 } },
+  // 01 ARRIVAL — subject: both fighters (NOX silhouette, AERON reconstructing). Low wide: two
+  // fighters, one space, immediately.
+  ARRIVAL_WIDE: still([-0.25, 0.42, 5.6], [-0.2, 1.0, 0], 42, { fullBody: ['velocity', 'void'] }),
 
-  /** Standoff insert: VOID's slit eye as it raises its guard. */
-  STANDOFF_VOID: { mode: 'FREEZE', position: [1.05, 1.45, 2.05], target: [2.3, 1.6, 0], fov: 30, lag: 0, breathe: 0, portrait: { position: [1.2, 1.45, 2.7], target: [2.3, 1.5, 0], fov: 48 } },
-  STANDOFF_VOID_PUSH: { mode: 'FREEZE', position: [1.3, 1.5, 1.75], target: [2.3, 1.62, 0], fov: 29, lag: 0, breathe: 0, portrait: { position: [1.4, 1.5, 2.4], target: [2.3, 1.55, 0], fov: 46 } },
+  // 02 STANDOFF — inserts. AERON's eyes; NOX's eyes; AERON sinking into his stance.
+  AERON_EYES: still([-1.38, 1.6, 0.2], [-1.95, 1.58, 0], 24),
+  NOX_EYES: still([0.88, 1.68, -0.2], [1.6, 1.64, 0], 28),
+  AERON_STANCE_LOW: still([-0.53, 0.5, 2.68], [-1.85, 0.78, 0], 42, { fullBody: ['velocity'] }),
 
-  // ── First exchange ─────────────────────────────────────────────────────────
-  /** Low behind VELOCITY's shoulder: the crouch in the foreground, VOID ahead. */
-  LOW_PREP: { mode: 'FREEZE', position: [-4.1, 0.38, 1.6], target: [0.6, 1.05, -0.2], fov: 38, lag: 0, breathe: 0, portrait: { position: [-4.6, 0.6, 1.0], target: [1.0, 1.0, -0.2], fov: 54 } },
-  /** Side tracking: rides alongside the dash. */
-  SIDE_TRACK: {
-    mode: 'CHASE',
-    position: [-0.4, 0.35, 3.6],
-    target: [0, 1.0, 0],
-    fov: 44,
-    track: 'velocity',
-    trackWeight: 1,
-    lead: 1.1,
-    lag: 14,
-    breathe: 0,
-    portrait: { position: [-0.8, 0.6, 4.6], fov: 58 },
-  },
-  /** Close on VOID as the strike passes through it. */
-  PHASE_CLOSE: { mode: 'FREEZE', position: [2.0, 1.25, 2.3], target: [2.3, 1.25, 0], fov: 34, lag: 0, breathe: 0, portrait: { position: [2.2, 1.3, 3.0], fov: 52 } },
-  /** 3/4 wide: both fighters readable after the pass. */
-  THREE_Q: { mode: 'FREEZE', position: [3.4, 1.35, 6.4], target: [3.7, 0.95, 0], fov: 38, lag: 0, breathe: 0, portrait: { position: [8.8, 2.8, 4.0], target: [3.6, 0.9, 0], fov: 54 } },
+  // 03 FIRST ATTACK — profile two-shot: the whole dash and punch in one readable frame…
+  ATTACK_PROFILE: still([-0.4, 1.0, 4.5], [-0.25, 0.92, 0], 40, { fullBody: ['velocity', 'void'] }),
+  // …then the penetration: 3/4 side, both upper bodies, the fist inside NOX's chest.
+  PENETRATION: still([0.95, 1.38, 1.5], [1.38, 1.24, 0], 34),
+  // NOX's counter elbow and AERON's duck: full bodies, side on.
+  COUNTER_TWO: still([1.0, 0.86, 3.5], [1.0, 0.82, 0], 40, { fullBody: ['velocity', 'void'] }),
 
-  /** Slow push on the reset after the back-flip: the next attack is coiling. */
-  THREE_Q_PUSH: { mode: 'FREEZE', position: [3.9, 1.15, 4.9], target: [4.3, 0.95, 0], fov: 36, lag: 0, breathe: 0, portrait: { position: [8.0, 2.4, 3.4], target: [3.8, 0.9, 0], fov: 52 } },
+  // 04 CLOSE COMBAT — medium two-shot; over NOX's shoulder for the grab; low 3/4 for the kick.
+  CLOSE_TWO: still([0.83, 0.82, 3.75], [0.95, 0.73, 0], 40, { fullBody: ['velocity', 'void'] }),
+  GRAB_OTS: still([2.55, 1.55, 1.05], [0.55, 1.0, -0.2], 40),
+  SPIN_LOW: still([0.05, 0.42, 3.2], [0.95, 0.8, -0.1], 44, { fullBody: ['velocity', 'void'] }),
 
-  // ── Close combat ───────────────────────────────────────────────────────────
-  CLOSE_COMBAT: { mode: 'FREEZE', position: [4.5, 1.15, 3.5], target: [3.0, 1.15, 0], fov: 36, lag: 0, breathe: 0, portrait: { position: [5.6, 1.4, 4.2], target: [3.2, 1.1, 0], fov: 54 } },
-  /** Low, looking up as VELOCITY vaults over VOID. */
-  OVER_LOW: { mode: 'FREEZE', position: [2.2, 0.3, 3.0], target: [2.0, 1.9, 0], fov: 46, lag: 0, breathe: 0, portrait: { position: [2.2, 0.35, 3.8], target: [2.0, 1.7, 0], fov: 60 } },
-  THREE_Q_LEFT: { mode: 'FREEZE', position: [-0.4, 1.3, 5.6], target: [1.6, 1.0, 0], fov: 38, lag: 0, breathe: 0, portrait: { position: [-4.8, 2.6, 3.6], target: [1.6, 0.9, 0], fov: 54 } },
+  // 05 FAILED STRATEGY — AERON backs off; close on his eyes: he is thinking.
+  RESET_TWO: still([0.4, 0.95, 3.75], [0.6, 0.88, 0], 40, { fullBody: ['velocity', 'void'] }),
+  AERON_THINK: still([0.42, 1.6, 0.62], [-0.2, 1.56, -0.05], 26),
 
-  /** VOID's counter-lunge; VELOCITY ducks under it. */
-  COUNTER_CLOSE: { mode: 'FREEZE', position: [1.15, 0.85, 3.0], target: [1.45, 1.05, -0.15], fov: 38, lag: 0, breathe: 0, portrait: { position: [1.2, 1.0, 3.9], target: [1.45, 1.0, -0.15], fov: 56 } },
+  // 06 ANCHOR — insert on the hand forming the anchor; the throw side-on; NOX's eyes following
+  // it; the anchor planted behind him.
+  ANCHOR_HAND: still([0.95, 1.5, 0.95], [0.25, 1.3, -0.08], 32),
+  THROW_SIDE: still([-0.6, 0.98, 3.45], [0.7, 0.8, -0.1], 44, { fullBody: ['velocity', 'void'] }),
+  NOX_WATCH: still([0.85, 1.62, 0.95], [1.65, 1.6, -0.05], 32),
+  ANCHOR_PLANT: still([3.65, 0.5, 0.65], [2.95, 0.32, -0.45], 34),
 
-  // ── Teleport / deception ───────────────────────────────────────────────────
-  THROW_LOW: { mode: 'FREEZE', position: [-1.1, 0.7, 1.9], target: [3.0, 1.3, -0.4], fov: 38, lag: 0, breathe: 0, portrait: { position: [-1.6, 0.9, 2.2], target: [3.0, 1.2, -0.4], fov: 54 } },
-  /** Insert: the planted anchor. */
-  MARKER_INSERT: { mode: 'FREEZE', position: [5.9, 0.55, 0.75], target: [4.95, 0.35, -0.45], fov: 30, lag: 0, breathe: 0, portrait: { position: [6.0, 0.7, 1.2], fov: 46 } },
-  MARKER_PUSH: { mode: 'FREEZE', position: [5.55, 0.48, 0.3], target: [4.95, 0.38, -0.45], fov: 28, lag: 0, breathe: 0, portrait: { position: [5.7, 0.6, 0.8], fov: 44 } },
-  SIDE_TRACK_B: {
-    mode: 'CHASE',
-    position: [-0.2, 0.4, 3.4],
-    target: [0, 1.0, 0],
-    fov: 46,
-    track: 'velocity',
-    trackWeight: 1,
-    lead: 1.0,
-    lag: 14,
-    breathe: 0,
-    portrait: { position: [-0.5, 0.7, 4.4], fov: 58 },
-  },
-  /** Overhead: the deception becomes legible — VOID phased, the strike gone, the anchor behind it. */
-  OVERHEAD: { mode: 'FREEZE', position: [2.6, 8.4, 2.2], target: [3.0, 0.2, -0.3], fov: 44, lag: 0, breathe: 0, portrait: { position: [2.9, 9.6, 1.6], target: [3.1, 0.2, -0.3], fov: 56 } },
-  /** Past VOID's shoulder toward the reconstructed VELOCITY. */
-  BEHIND_VOID: { mode: 'FREEZE', position: [0.6, 1.6, 2.6], target: [4.4, 1.4, -0.4], fov: 40, lag: 0, breathe: 0, portrait: { position: [0.2, 1.9, 2.8], target: [4.2, 1.5, -0.4], fov: 56 } },
+  // 07 SECOND ATTACK — from NOX's front-left: AERON comes at NOX, the anchor is visible behind.
+  SECOND_ATTACK: still([-0.2, 1.05, 3.0], [1.6, 0.84, -0.25], 42, { fullBody: ['void'] }),
 
-  // ── Code Core ──────────────────────────────────────────────────────────────
-  /** Low, looking up at the inverted VELOCITY above VOID. */
-  HERO_LOW: { mode: 'FREEZE', position: [3.25, 0.85, 3.1], target: [2.6, 2.35, 0], fov: 50, lag: 0, breathe: 0, portrait: { position: [3.6, 0.5, 5.6], target: [2.65, 2.2, 0], fov: 58 } },
-  HERO_LOW_PUSH: { mode: 'FREEZE', position: [3.15, 0.95, 2.75], target: [2.6, 2.4, 0], fov: 50, lag: 0, breathe: 0, portrait: { position: [3.45, 0.6, 5.0], target: [2.65, 2.25, 0], fov: 56 } },
-  CORE_CLOSE: { mode: 'FREEZE', position: [3.75, 1.85, 1.75], target: [2.8, 2.1, -0.2], fov: 36, lag: 0, breathe: 0, portrait: { position: [3.85, 1.9, 2.4], fov: 50 } },
-  VOID_FACE: { mode: 'FREEZE', position: [1.15, 1.15, 1.75], target: [2.5, 2.05, -0.1], fov: 42, lag: 0, breathe: 0, portrait: { position: [1.2, 1.2, 2.3], fov: 52 } },
+  // 08 TELEPORT — the empty frame (NOX alone, the beacon behind him), then a hard cut: NOX in
+  // the foreground, AERON reconstructing above / behind at the anchor.
+  TELEPORT_EMPTY: still([-0.6, 1.25, 3.6], [1.9, 1.0, -0.3], 40, { fullBody: ['void'] }),
+  RECONSTRUCT: still([0.55, 0.75, 1.75], [2.4, 1.65, -0.35], 44),
 
-  // ── Impact ─────────────────────────────────────────────────────────────────
-  IMPACT_HERO: { mode: 'IMPACT', position: [4.7, 1.0, 3.3], target: [2.7, 1.35, 0], fov: 40, lag: 0, breathe: 0, portrait: { position: [4.6, 1.1, 4.2], target: [2.7, 1.3, 0], fov: 58 } },
-  IMPACT_WIDE: { mode: 'IMPACT', position: [1.4, 1.6, 9.4], target: [2.6, 1.1, 0], fov: 42, lag: 0, breathe: 0, portrait: { position: [-4.2, 4.0, 7.4], target: [2.6, 1.0, 0], fov: 58 } },
-  AFTERMATH: { mode: 'FREEZE', position: [0.6, 1.9, 10.2], target: [2.8, 0.75, 0], fov: 38, lag: 0, breathe: 0, portrait: { position: [-4.6, 4.2, 8.0], target: [2.8, 0.6, 0], fov: 54 } },
-  AFTERMATH_PUSH: { mode: 'FREEZE', position: [1.2, 1.55, 8.4], target: [2.9, 0.75, 0], fov: 36, lag: 0, breathe: 0, portrait: { position: [-3.6, 3.6, 7.0], target: [2.9, 0.6, 0], fov: 52 } },
+  // 09 REVERSAL — on NOX's face as it turns (head → shoulders → torso); AERON above / behind.
+  NOX_TURN: still([0.75, 1.62, 0.85], [1.7, 1.7, 0], 36),
+  REVERSAL_WIDE: still([-0.1, 0.8, 4.1], [1.95, 1.45, -0.1], 48, { fullBody: ['void', 'velocity'] }),
+
+  // 10 CODE CORE — tight hero 3/4: AERON's face, hand and core; NOX lit below.
+  CORE_HERO: still([1.45, 2.2, 1.55], [2.2, 2.0, -0.05], 36),
+  CORE_LOW: still([1.1, 0.9, 2.2], [2.0, 1.75, -0.05], 44),
+
+  // 11 STRIKE — profile, both full bodies: the drive is read as body mechanics.
+  STRIKE_PROFILE: still([1.95, 1.5, 5.3], [1.95, 1.45, 0], 42, { fullBody: ['velocity', 'void'] }),
+
+  // 12 IMPACT — the contact (both readable), then wide for the expansion.
+  IMPACT_HERO: { mode: 'IMPACT', position: [1.0, 1.15, 2.6], target: [1.85, 1.2, 0], fov: 42, lag: 0, breathe: 0 },
+  IMPACT_WIDE: { mode: 'IMPACT', position: [0.3, 1.5, 6.6], target: [1.9, 0.9, 0], fov: 42, lag: 0, breathe: 0 },
+
+  // 13 AFTERMATH — wide: crater, floating fragments, NOX down, AERON landed.
+  AFTERMATH: still([-0.6, 1.5, 6.8], [1.9, 0.6, 0], 40, { fullBody: ['velocity', 'void'] }),
+  AFTERMATH_PUSH: still([-0.1, 1.35, 6.0], [2.0, 0.6, 0], 38, { fullBody: ['velocity', 'void'] }),
 } as const satisfies Record<string, ShotPreset>
 
 export type ShotName = keyof typeof SHOTS

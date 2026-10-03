@@ -113,6 +113,35 @@ export class CinematicEngine {
     return this.timeline.cues
   }
 
+  get scenes() {
+    return this.timeline.scenes
+  }
+
+  get shots() {
+    return this.timeline.shots
+  }
+
+  get scene() {
+    return this.timeline.sceneAt(this.time)
+  }
+
+  get shot() {
+    return this.timeline.shotAt(this.time)
+  }
+
+  /** Playback speed of the sequence clock (review slow motion). */
+  setTimeScale(scale: number): void {
+    this.timeScale = Math.max(0, scale)
+  }
+
+  /** Jump to a scene by id (review mode). Returns false when the id is unknown. */
+  seekScene(id: string): boolean {
+    const scene = this.timeline.scenes.find((s) => s.id === id)
+    if (!scene) return false
+    this.seek(scene.time)
+    return true
+  }
+
   /** Authoring check — see CinematicTimeline.overlaps. */
   overlaps() {
     return this.timeline.overlaps()

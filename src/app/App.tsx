@@ -7,7 +7,7 @@ export function App() {
   return (
     <CinematicProvider>
       <main className="experience" aria-label="VoidShift cinematic intro">
-        <div className="experience__stage" role="img" aria-label="Real-time cinematic: two abstract forces, Velocity and Void, enter a computational space.">
+        <div className="experience__stage" role="img" aria-label="Real-time cinematic fight: AERON, a precise fighter of light, against NOX, a heavy fighter who phases through space.">
           <StageErrorBoundary>
             <Stage />
           </StageErrorBoundary>

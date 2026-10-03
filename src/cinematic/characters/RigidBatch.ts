@@ -25,6 +25,7 @@ type Drawable = Mesh | LineSegments
  * small float texture that is refreshed once per frame. ~50 draws per fighter become 3–5.
  *
  * Parts whose material is invisible are skipped (they never draw). Batched originals are hidden.
+ * A part flagged `userData.batchHidden` is collapsed in the shader (alternate shapes).
  */
 export class RigidBatch {
   readonly group = new Group()
@@ -95,7 +96,13 @@ export class RigidBatch {
     this.group.visible = visible
     if (!visible) return
     this.root.updateMatrixWorld(true)
-    for (let i = 0; i < this.parts.length; i++) this.parts[i].matrixWorld.toArray(this.data, i * 16)
+    for (let i = 0; i < this.parts.length; i++) {
+      const part = this.parts[i]
+      // Alternate shapes (e.g. open hand / fist) are switched with userData.batchHidden: a zero
+      // matrix collapses the part to a point (no fragments rasterise).
+      if (part.userData.batchHidden) this.data.fill(0, i * 16, i * 16 + 16)
+      else part.matrixWorld.toArray(this.data, i * 16)
+    }
     this.texture.needsUpdate = true
   }
 

@@ -63,6 +63,8 @@ export interface CinematicState {
     planted: number
     /** 0..1 extra pulse (camera notices it; teleport target). */
     glow: number
+    /** 0..1 held in AERON's right hand (1 = follows the hand exactly). */
+    held: number
   }
   /** The Code Core in VELOCITY's striking hand. */
   core: {
@@ -131,8 +133,8 @@ export interface CinematicState {
 
 /** Stage marks (world units). Both fighters stand on the floor (y = 0). */
 export const STAGE = {
-  velocityHome: new Vector3(-2.3, 0, 0),
-  voidHome: new Vector3(2.3, 0, 0),
+  velocityHome: new Vector3(-2.0, 0, 0),
+  voidHome: new Vector3(1.6, 0, 0),
 } as const
 
 /** Yaw that makes a fighter face along (dx, dz). */
@@ -161,9 +163,9 @@ export function createCinematicState(): CinematicState {
     world: { reveal: 0, axis: 0, atmosphere: 0, structures: 0, voidField: 0 },
     fighters: {
       velocity: fighter(STAGE.velocityHome.clone(), facing(1, 0), 'assemble'),
-      void: fighter(STAGE.voidHome.clone(), facing(-1, 0), 'hunch'),
+      void: fighter(STAGE.voidHome.clone(), facing(-1, 0), 'stand'),
     },
-    anchor: { position: new Vector3(0, -5, 0), spin: 0, visible: 0, planted: 0, glow: 0 },
+    anchor: { position: new Vector3(0, -5, 0), spin: 0, visible: 0, planted: 0, glow: 0, held: 0 },
     core: { charge: 0, overload: 0 },
     impact: { position: STAGE.voidHome.clone(), age: -1, light: 0, shock: 0, crater: 0, smoke: 0 },
     lights: { ambient: 0, key: 0, rimVelocity: 0, rimVoid: 0 },

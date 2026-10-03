@@ -1,19 +1,20 @@
 import { CINEMATIC_PHASES } from '../../cinematic/types'
 import { useExperience } from '../../store/experienceStore'
+import { CameraDebugOverlay, ReviewPanel } from '../review/ReviewPanel'
 import { IntroControls } from './IntroControls'
 import { PerfReadout } from './PerfReadout'
 import { Timecode } from './Timecode'
 
 const PHASE_DESCRIPTIONS: Partial<Record<string, string>> = {
-  BOOT: 'Darkness. A single coordinate draws the axes of a new space.',
-  REVEAL: 'Velocity assembles from light. Across the field, the Void stands up.',
-  SPAWN: 'Standoff. Neither moves first.',
-  ENGAGE: 'Velocity dashes in; the strike passes through a phased Void, which answers.',
-  PHASE: 'Close combat: blocks, a spin kick read and slipped, a vault over the Void.',
-  TELEPORT: 'An anchor is thrown past the Void and planted. Velocity vanishes.',
-  LOCK: 'Velocity reconstructs at the anchor, above and behind. The Void turns too late.',
-  CORE_CHARGE: 'A Code Core forms in Velocity’s hand. The Void tries to phase — and fails.',
-  IMPACT: 'Contact. The core detonates through the Void.',
+  BOOT: 'Darkness. NOX is already there — two violet eyes. AERON reconstructs from light.',
+  REVEAL: 'Standoff. AERON lowers his stance; NOX raises his guard.',
+  SPAWN: 'AERON explodes forward with a straight punch; it passes through NOX, who counters with an elbow.',
+  ENGAGE: 'Close combat: a body kick blocked, a grab escaped, a spinning kick phased through.',
+  PHASE: 'Ordinary attacks fail. AERON forms a coordinate anchor and throws it past NOX.',
+  TELEPORT: 'AERON attacks again, comes apart inside NOX, and reconstructs at the anchor behind him.',
+  LOCK: 'NOX turns — head, shoulders, torso — too late. AERON is above and behind him.',
+  CORE_CHARGE: 'The Code Core forms in AERON’s hand. He drives it into NOX.',
+  IMPACT: 'Impact. NOX is driven down; AERON lands in the aftermath.',
 }
 
 /**
@@ -24,6 +25,7 @@ export function Overlay() {
   const phase = useExperience((s) => s.phase)
   const debug = useExperience((s) => s.debug)
   const rendererError = useExperience((s) => s.rendererError)
+  const review = useExperience((s) => s.review)
   const index = CINEMATIC_PHASES.indexOf(phase) + 1
 
   return (
@@ -48,6 +50,8 @@ export function Overlay() {
         </p>
       ) : null}
       {debug ? <PerfReadout /> : null}
+      {review ? <ReviewPanel /> : null}
+      {review ? <CameraDebugOverlay /> : null}
     </div>
   )
 }

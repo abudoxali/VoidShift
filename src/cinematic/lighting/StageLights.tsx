@@ -1,6 +1,6 @@
-import { useFrame } from '@react-three/fiber'
+import { useFrame, useThree } from '@react-three/fiber'
 import { useMemo } from 'react'
-import { Color, DirectionalLight, HemisphereLight, Object3D } from 'three'
+import { Color, DirectionalLight, HemisphereLight, Object3D, Vector3 } from 'three'
 import { useCinematicEngine } from '../engine/CinematicContext'
 import { FRAME_STAGE } from '../engine/frameStages'
 
@@ -12,6 +12,7 @@ import { FRAME_STAGE } from '../engine/frameStages'
  */
 export function StageLights() {
   const engine = useCinematicEngine()
+  const camera = useThree((st) => st.camera)
   const rig = useMemo(() => {
     const hemi = new HemisphereLight(new Color(0.16, 0.32, 0.38), new Color(0.01, 0.015, 0.02), 0)
     const key = new DirectionalLight(new Color(0.75, 0.86, 1.0), 0)
@@ -22,7 +23,12 @@ export function StageLights() {
     const rimD = new DirectionalLight(new Color(0.7, 0.3, 1.0), 0)
     const rimDTarget = new Object3D()
     rimD.target = rimDTarget
-    return { hemi, key, rimV, rimVTarget, rimD, rimDTarget }
+    // Camera key: a soft light from above and to the left of whatever shot is live, aimed at the
+    // shot's subject. Faces stay readable in every shot without raising exposure.
+    const camKey = new DirectionalLight(new Color(0.85, 0.92, 1.0), 0)
+    const camKeyTarget = new Object3D()
+    camKey.target = camKeyTarget
+    return { hemi, key, rimV, rimVTarget, rimD, rimDTarget, camKey, camKeyTarget, side: new Vector3(), up: new Vector3() }
   }, [])
 
   useFrame(() => {
@@ -39,7 +45,12 @@ export function StageLights() {
     rig.rimDTarget.position.set(d.x, d.y + 1.2, d.z)
     rig.rimD.position.set(d.x + 3, d.y + 4.5, d.z - 6)
     rig.rimD.intensity = l.rimVoid * 3.6
-  }, FRAME_STAGE.WORLD)
+    // Camera key: offset up and to the camera's left, pointed at the shot target.
+    camera.getWorldDirection(rig.side).cross(camera.up).normalize()
+    rig.camKey.position.copy(camera.position).addScaledVector(rig.side, -1.6).add(rig.up.set(0, 1.8, 0))
+    rig.camKeyTarget.position.copy(s.camera.target)
+    rig.camKey.intensity = (0.35 + l.key * 0.9) * Math.min(1, s.fighters.velocity.reveal + s.fighters.void.reveal)
+  }, FRAME_STAGE.LATE)
 
   return (
     <>
@@ -49,6 +60,8 @@ export function StageLights() {
       <primitive object={rig.rimVTarget} dispose={null} />
       <primitive object={rig.rimD} dispose={null} />
       <primitive object={rig.rimDTarget} dispose={null} />
+      <primitive object={rig.camKey} dispose={null} />
+      <primitive object={rig.camKeyTarget} dispose={null} />
     </>
   )
 }
