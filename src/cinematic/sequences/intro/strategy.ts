@@ -18,6 +18,7 @@ export const strategySegment: PhaseSegment = {
     const a = state.anchor
     ctx.scene('strategy', 'Failed strategy', 0)
     shot(ctx, 'RESET_TWO', 0)
+    tl.to(state.world, { atmosphere: 0.85, duration: 0.9, ease: 'power1.inOut' }, at(0.1))
     pose(ctx, 'velocity', 'backstep', 0.0, 0.18, 'power2.out')
     moveTo(ctx, 'velocity', MARKS.reset, 0.0, 0.35, 'power2.out')
     tween(ctx, 'velocity', { yaw: YAW.east }, 0.0, 0.3, 'power2.out')

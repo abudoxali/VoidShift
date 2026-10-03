@@ -17,6 +17,8 @@ export const firstAttackSegment: PhaseSegment = {
     const { tl, state, at } = ctx
     ctx.scene('first-attack', 'First attack', 0)
     shot(ctx, 'ATTACK_PROFILE', 0)
+    // The environment steps back while the fighters are in contact (restored at the strategy beat).
+    tl.to(state.world, { atmosphere: 0.45, duration: 0.4, ease: 'power1.out' }, at(0))
 
     // Explode forward: dash → lead step lands → hips turn → the right straight.
     pose(ctx, 'velocity', 'dash', 0.0, 0.07, 'expo.out')

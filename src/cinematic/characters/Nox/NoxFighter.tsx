@@ -98,7 +98,7 @@ export function NoxFighter() {
   const skeleton = useMemo(() => new SkeletonLines([1.4, 0.4, 2.0]), [])
   useEffect(() => () => skeleton.dispose(), [skeleton])
 
-  const light = useMemo(() => new PointLight(new Color(0.75, 0.3, 1.0), 0, 5, 2), [])
+  const light = useMemo(() => new PointLight(new Color(0.72, 0.46, 0.95), 0, 5, 2), [])
   const scratch = useMemo(
     () => ({ p: new Vector3(), key: new Vector3(), settled: false, colliders: [{ center: new Vector3(), radius: 0.26 }, { center: new Vector3(), radius: 0.22 }, { center: new Vector3(), radius: 0.2 }] as Collider[] }),
     [],

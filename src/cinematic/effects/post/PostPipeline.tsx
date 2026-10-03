@@ -125,11 +125,11 @@ export function PostPipeline() {
     // FX off (?fx=off): a neutral grade — characters and choreography only.
     const fxOn = useExperience.getState().fx === 'full'
     g.flash = fxOn ? fx.flash : 0
-    g.grain = profile.grain
-    g.invert = fx.invert
-    g.speed = fx.speed
+    g.grain = fxOn && profile.grain
+    g.invert = fxOn ? fx.invert : 0
+    g.speed = fxOn ? fx.speed : 0
     g.speedAngle = fx.speedAngle
-    g.radial = fx.radial
+    g.radial = fxOn ? fx.radial : 0
     toScreen(s.impact.position, g.radialCenter)
     grade.set(g, engine.elapsed)
   }, FRAME_STAGE.LATE)

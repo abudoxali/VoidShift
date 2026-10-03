@@ -1,14 +1,15 @@
 import { useFrame, useThree } from '@react-three/fiber'
 import { useMemo } from 'react'
-import { Color, DirectionalLight, HemisphereLight, Object3D, Vector3 } from 'three'
+import { Color, DirectionalLight, HemisphereLight, Object3D, SpotLight, Vector3 } from 'three'
 import { useCinematicEngine } from '../engine/CinematicContext'
 import { FRAME_STAGE } from '../engine/frameStages'
 
 /**
  * Stage lighting. Characters are lit physically (standard materials); every intensity is driven
  * by the timeline (`state.lights`). Rim lights sit BEHIND the fighters so their silhouettes cut
- * out of the dark — cyan behind VELOCITY, violet behind VOID. Energy lights (fighters, Code
- * Core, impact) live with their sources.
+ * out of the dark — cyan behind AERON, violet behind NOX. They are narrow spots aimed at their
+ * own fighter (not stage-wide directionals), so one fighter's colour does not wash over the
+ * other's face. Energy lights (fighters, Code Core, impact) live with their sources.
  */
 export function StageLights() {
   const engine = useCinematicEngine()
@@ -17,10 +18,12 @@ export function StageLights() {
     const hemi = new HemisphereLight(new Color(0.16, 0.32, 0.38), new Color(0.01, 0.015, 0.02), 0)
     const key = new DirectionalLight(new Color(0.75, 0.86, 1.0), 0)
     key.position.set(3, 7, 9)
-    const rimV = new DirectionalLight(new Color(0.35, 0.9, 1.0), 0)
+    // ~1.25 m cone radius at the fighter, soft edge, no distance falloff (matches the old directionals).
+    const rimSpot = (color: Color) => new SpotLight(color, 0, 0, 0.17, 0.6, 0)
+    const rimV = rimSpot(new Color(0.4, 0.88, 1.0))
     const rimVTarget = new Object3D()
     rimV.target = rimVTarget
-    const rimD = new DirectionalLight(new Color(0.7, 0.3, 1.0), 0)
+    const rimD = rimSpot(new Color(0.72, 0.4, 0.95))
     const rimDTarget = new Object3D()
     rimD.target = rimDTarget
     // Camera key: a soft light from above and to the left of whatever shot is live, aimed at the
