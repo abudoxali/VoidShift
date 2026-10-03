@@ -36,11 +36,11 @@ export const impactSegment: PhaseSegment = {
     impactFrame(ctx, 0.08, 2)
     tl.set(state.core, { charge: 0, overload: 0 }, at(0.08))
 
-    // 3. Flash → expansion.
-    flash(ctx, 0.15, 0.75, 0.3)
+    // 3. Flash → expansion. Kept below a white-out: the bodies stay visible through the blast.
+    flash(ctx, 0.15, 0.35, 0.2)
     tl.to(i, { light: 1, duration: 0.02 }, at(0.15))
     tl.to(i, { light: 0.12, duration: 2.0, ease: 'power3.out' }, at(0.3))
-    tl.to(state.fx, { radial: 1, duration: 0.04 }, at(0.15))
+    tl.to(state.fx, { radial: 0.55, duration: 0.04 }, at(0.15))
     tl.to(state.fx, { radial: 0, duration: 1.1, ease: 'power2.out' }, at(0.3))
     ctx.cue(CUES.EXPLOSION, 0.15, { x: c.x, y: c.y, z: c.z })
     burst(ctx, BURST.SPARKS, c, 0.15, 2.0)

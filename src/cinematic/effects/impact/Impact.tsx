@@ -168,12 +168,12 @@ export function Impact() {
     const grow = 1 - Math.exp(-da * 12)
     parts.dome.position.copy(c)
     parts.dome.scale.setScalar(0.3 + grow * 3.0)
-    parts.domeMat.uniforms.uIntensity.value = im.light * Math.exp(-da * 6) * 0.7
+    parts.domeMat.uniforms.uIntensity.value = im.light * Math.exp(-da * 6) * 0.35
     // Spent layers stop drawing.
     parts.dome.visible = age > 0.067 && parts.domeMat.uniforms.uIntensity.value > 0.002
     parts.coreFlash.visible = age > 0.067 && da < 1 / 6
     parts.coreFlash.position.copy(c)
-    parts.coreFlash.scale.setScalar(0.15 + grow * 0.6)
+    parts.coreFlash.scale.setScalar(0.1 + grow * 0.3)
     ;(parts.coreFlash.material as MeshBasicMaterial).opacity = Math.max(0, 1 - da * 6)
 
     // Ground shockwaves.
@@ -234,7 +234,7 @@ export function Impact() {
     ;(su.uOrigin.value as Vector3).set(c.x, 0, c.z)
 
     parts.light.position.copy(c)
-    parts.light.intensity = im.light * 90
+    parts.light.intensity = im.light * 45
     parts.ember.position.set(c.x, 0.25, c.z)
     parts.ember.intensity = im.crater * (1.2 + Math.exp(-age * 0.8) * 4)
   }, FRAME_STAGE.WORLD)
