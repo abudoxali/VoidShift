@@ -17,13 +17,10 @@ export const domeFrag = /* glsl */ `
 uniform float uIntensity;
 varying vec3 vNormalV;
 varying vec3 vViewDir;
-varying vec3 vObj;
 void main() {
   float f = clamp(dot(vNormalV, vViewDir), 0.0, 1.0);
-  float rim = pow(1.0 - f, 2.5);
-  float a = atan(vObj.z, vObj.x);
-  float rays = pow(abs(sin(a * 11.0 + vObj.y * 3.0)), 18.0);
-  vec3 col = vec3(0.6, 1.8, 2.4) * (rim * 0.8 + rays * 0.9) * (1.0 - rim * 0.4) + vec3(2.4, 2.8, 3.0) * pow(f, 4.0) * 0.9;
+  // A volumetric flash, not a shell: bright through the middle, no hard rim.
+  vec3 col = vec3(0.5, 1.5, 2.0) * pow(f, 1.6) * 0.8 + vec3(2.4, 2.8, 3.0) * pow(f, 5.0) * 0.9;
   gl_FragColor = vec4(col * uIntensity, 1.0);
 }`
 

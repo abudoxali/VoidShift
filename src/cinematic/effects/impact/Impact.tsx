@@ -62,11 +62,11 @@ export function Impact() {
     const dome = new Mesh(new SphereGeometry(1, 40, 24), domeMat)
     const coreFlash = new Mesh(new IcosahedronGeometry(1, 2), new MeshBasicMaterial({ color: new Color(3, 3.3, 3.5), transparent: true, blending: AdditiveBlending, depthWrite: false }))
 
-    const ringMat = new MeshBasicMaterial({ color: new Color(1.1, 2.4, 3.0), transparent: true, blending: AdditiveBlending, depthWrite: false, side: DoubleSide })
-    const shockRing = new Mesh(new RingGeometry(0.9, 1.0, 96).rotateX(-Math.PI / 2), ringMat)
+    const ringMat = new MeshBasicMaterial({ color: new Color(0.6, 1.9, 2.5), transparent: true, blending: AdditiveBlending, depthWrite: false, side: DoubleSide })
+    const shockRing = new Mesh(new RingGeometry(0.965, 1.0, 128).rotateX(-Math.PI / 2), ringMat)
     const ring2Mat = ringMat.clone()
     ring2Mat.color = new Color(0.8, 0.25, 1.6)
-    const shockRing2 = new Mesh(new RingGeometry(0.95, 1.0, 96).rotateX(-Math.PI / 2), ring2Mat)
+    const shockRing2 = new Mesh(new RingGeometry(0.975, 1.0, 128).rotateX(-Math.PI / 2), ring2Mat)
     root.add(dome, coreFlash, shockRing, shockRing2)
 
     // Geometry shards: lit, faceted, hot when they leave and cooling as they fall.

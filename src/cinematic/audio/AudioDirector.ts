@@ -1,14 +1,19 @@
-import type { CinematicEngine } from '../engine/CinematicEngine'
+import { CinematicEngine } from '../engine/CinematicEngine'
+import type { SequenceDefinition } from '../engine/CinematicTimeline'
+import type { MotionProfile } from '../types'
 import type { CueEvent } from '../engine/CinematicTimeline'
 import { CUES } from '../engine/cues'
 
 /**
- * Cue-driven procedural audio foundation (Web Audio, no assets). Sound is OFF by default and
- * the AudioContext is only created from a user gesture (autoplay policy). Final sound design
- * is a later milestone; this establishes the bus, the cue routing and the VOID drone.
+ * Cue-driven procedural audio (Web Audio, no assets). Sound is OFF by default and the
+ * AudioContext is only created from a user gesture (autoplay policy). Every sound is
+ * synthesised from oscillators and seeded noise, scheduled on an explicit clock so the same
+ * score can also be rendered offline (`renderOffline`) for previews.
  */
 export class AudioDirector {
-  private ctx: AudioContext | null = null
+  private ctx: BaseAudioContext | null = null
+  /** Explicit schedule time (offline rendering); null = the context's live clock. */
+  private clock: number | null = null
   private master: GainNode | null = null
   private droneGain: GainNode | null = null
   private droneLevel = 0
@@ -21,22 +26,22 @@ export class AudioDirector {
   async enable(): Promise<void> {
     if (!this.ctx) this.build()
     const ctx = this.ctx!
-    await ctx.resume()
+    if (ctx instanceof AudioContext) await ctx.resume()
     this.enabled = true
-    this.master!.gain.setTargetAtTime(0.7, ctx.currentTime, 0.15)
+    this.master!.gain.setTargetAtTime(0.7, this.now(), 0.15)
   }
 
   disable(): void {
     if (!this.ctx || !this.master) return
     this.enabled = false
-    this.master.gain.setTargetAtTime(0, this.ctx.currentTime, 0.08)
+    this.master.gain.setTargetAtTime(0, this.now(), 0.08)
   }
 
   /** Called every frame — only touches audio params when levels actually change. */
   sync(engine: CinematicEngine): void {
     if (!this.enabled || !this.ctx || !this.droneGain || !this.coreGain || !this.coreOsc) return
     const s = engine.state
-    const t = this.ctx.currentTime
+    const t = this.now()
     const drone = s.world.voidField * s.fighters.void.reveal * 0.12
     if (Math.abs(drone - this.droneLevel) > 0.004) {
       this.droneLevel = drone
@@ -48,6 +53,35 @@ export class AudioDirector {
       this.coreGain.gain.setTargetAtTime(core, t, 0.05)
       this.coreOsc.frequency.setTargetAtTime(90 + s.core.charge * 380 + s.core.overload * 520, t, 0.08)
     }
+  }
+
+  private now(): number {
+    return this.clock ?? this.ctx!.currentTime
+  }
+
+  /**
+   * Renders the full score of a sequence offline: cues at their timeline times, drone and core
+   * levels sampled at 60 Hz from a private engine. Deterministic; used for preview exports.
+   */
+  static async renderOffline(sequence: SequenceDefinition, motion?: MotionProfile, sampleRate = 48000): Promise<AudioBuffer> {
+    const engine = new CinematicEngine({ sequence, motion, autoplay: false })
+    const ctx = new OfflineAudioContext(2, Math.ceil((engine.duration + 2) * sampleRate), sampleRate)
+    const director = new AudioDirector()
+    director.build(ctx)
+    director.enabled = true
+    director.master!.gain.value = 0.7
+    let next = 0
+    const cues = engine.cues
+    for (let frame = 0; ; frame++) {
+      const t = Math.min(frame / 60, engine.duration)
+      engine.seek(t)
+      director.clock = t
+      director.sync(engine)
+      while (next < cues.length && cues[next].time <= t) director.handleCue(cues[next++])
+      if (t >= engine.duration) break
+    }
+    engine.dispose()
+    return ctx.startRendering()
   }
 
   handleCue(cue: CueEvent): void {
@@ -125,16 +159,21 @@ export class AudioDirector {
         this.sweep(420, 38, 3.2, 0.55)
         this.thump(45, 20, 2.6, 0.6)
         break
+      case CUES.AFTERMATH:
+        // A high ring hanging in the air, and debris settling.
+        this.blip(1760, 2.8, 0.05)
+        this.blip(2637, 2.2, 0.025, 0.05)
+        for (let i = 0; i < 7; i++) this.blip(2400 + ((i * 1373) % 2600), 0.03, 0.05, 0.25 + i * 0.21 + ((i * 37) % 11) * 0.02)
+        break
     }
   }
 
   dispose(): void {
-    void this.ctx?.close()
+    if (this.ctx instanceof AudioContext) void this.ctx.close()
     this.ctx = null
   }
 
-  private build(): void {
-    const ctx = new AudioContext()
+  private build(ctx: BaseAudioContext = new AudioContext()): void {
     const master = ctx.createGain()
     master.gain.value = 0
     const limiter = ctx.createDynamicsCompressor()
@@ -193,7 +232,7 @@ export class AudioDirector {
 
   private blip(freq: number, dur: number, level: number, delay = 0): void {
     const ctx = this.ctx!
-    const t = ctx.currentTime + delay
+    const t = this.now() + delay
     const o = ctx.createOscillator()
     const g = ctx.createGain()
     o.type = 'sine'
@@ -207,7 +246,7 @@ export class AudioDirector {
   /** Detuned pair gliding in pitch — used for the phase event. */
   private glide(from: number, to: number, dur: number, level: number): void {
     const ctx = this.ctx!
-    const t = ctx.currentTime
+    const t = this.now()
     const g = ctx.createGain()
     g.connect(this.master!)
     this.env(g, level, 0.02, dur, t)
@@ -225,7 +264,7 @@ export class AudioDirector {
 
   private thump(from: number, to: number, dur: number, level: number): void {
     const ctx = this.ctx!
-    const t = ctx.currentTime
+    const t = this.now()
     const o = ctx.createOscillator()
     const g = ctx.createGain()
     o.type = 'sine'
@@ -239,7 +278,7 @@ export class AudioDirector {
 
   private sweep(from: number, to: number, dur: number, level: number): void {
     const ctx = this.ctx!
-    const t = ctx.currentTime
+    const t = this.now()
     const src = ctx.createBufferSource()
     src.buffer = this.noise
     const bp = ctx.createBiquadFilter()

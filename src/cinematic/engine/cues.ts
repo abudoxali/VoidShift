@@ -32,6 +32,8 @@ export const CUES = {
   IMPACT: 'impact:contact',
   /** data: { x, y, z } — debris + explosion expansion begins. */
   EXPLOSION: 'impact:explosion',
+  /** The world settles: ringing silence, debris coming to rest. */
+  AFTERMATH: 'impact:aftermath',
 } as const
 
 export type CueName = (typeof CUES)[keyof typeof CUES]

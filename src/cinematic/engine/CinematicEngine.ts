@@ -57,7 +57,7 @@ export class CinematicEngine {
   fixedDelta: number | null = null
 
   private timeline: CinematicTimeline
-  private readonly sequence: SequenceDefinition
+  readonly sequence: SequenceDefinition
   private motionProfile: MotionProfile
   private viewLayout: ViewLayout
   private currentPhase: CinematicPhase

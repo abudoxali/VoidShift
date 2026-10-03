@@ -74,6 +74,7 @@ export const impactSegment: PhaseSegment = {
 
     // Aftermath.
     shot(ctx, 'AFTERMATH', 1.7)
+    ctx.cue(CUES.AFTERMATH, 1.7)
     shot(ctx, 'AFTERMATH_PUSH', 1.72, { duration: 3.7, ease: 'sine.inOut' })
     tl.to(state.lights, { key: 0.55, ambient: 0.35, duration: 2.0 }, at(1.7))
     pose(ctx, 'velocity', 'idle', 2.9, 1.0, 'power2.inOut')

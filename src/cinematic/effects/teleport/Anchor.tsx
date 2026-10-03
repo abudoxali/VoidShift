@@ -52,7 +52,7 @@ void main() {
  */
 export function Anchor() {
   const engine = useCinematicEngine()
-  const label = useGlyphLabel({ maxChars: 24, size: 0.085, color: [0.55, 1.9, 2.4], offset: [1.4, 0] })
+  const label = useGlyphLabel({ maxChars: 24, size: 0.055, color: [0.55, 1.9, 2.4], offset: [1.6, 0] })
 
   const parts = useMemo(() => {
     const root = new Group()
