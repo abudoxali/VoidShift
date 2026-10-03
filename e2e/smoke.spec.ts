@@ -63,8 +63,8 @@ for (const vp of VIEWPORTS) {
     expect(await litFraction(page)).toBeGreaterThan(0.05)
     const stats = await page.evaluate(() => window.__VOIDSHIFT__!.stats())
     expect(stats.calls).toBeGreaterThan(5)
-    // Two articulated fighters (one mesh per rigid body part), structures, FX layers.
-    expect(stats.calls).toBeLessThan(250)
+    // Fighters are rigid-batched (one draw per material); the rest is FX layers + post passes.
+    expect(stats.calls).toBeLessThan(80)
     expect(problems, problems.join('\n')).toEqual([])
   })
 }

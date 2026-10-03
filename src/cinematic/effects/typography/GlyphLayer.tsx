@@ -38,7 +38,7 @@ export function GlyphLayer({ children }: { children: ReactNode }) {
 
   return (
     <GlyphContext value={field}>
-      <primitive object={field.mesh} />
+      <primitive name="glyphs" object={field.mesh} />
       {children}
     </GlyphContext>
   )

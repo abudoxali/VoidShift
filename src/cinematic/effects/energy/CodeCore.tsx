@@ -161,5 +161,5 @@ export function CodeCore({ rig }: { rig: CharacterRig }) {
     parts.light.intensity = charge * 7 + over * 22
   }, FRAME_STAGE.LATE)
 
-  return <primitive object={parts.root} dispose={null} />
+  return <primitive name="core" object={parts.root} dispose={null} />
 }

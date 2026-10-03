@@ -90,5 +90,5 @@ export function WorldGrid() {
     ;(u.uHorizon.value as Vector3).set(...P.horizon).multiplyScalar(engine.state.world.atmosphere)
   }, FRAME_STAGE.WORLD)
 
-  return <mesh geometry={geometry} material={material} renderOrder={-1} frustumCulled={false} dispose={null} />
+  return <mesh name="grid" geometry={geometry} material={material} renderOrder={-1} frustumCulled={false} dispose={null} />
 }

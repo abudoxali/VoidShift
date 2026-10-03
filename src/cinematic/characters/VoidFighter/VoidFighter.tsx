@@ -9,6 +9,7 @@ import { useWorld } from '../../scenes/WorldContext'
 import { hash1 } from '../../../utils/math'
 import { createFighterUniforms } from '../fighterMaterials'
 import { disposeGeometries } from '../bodyParts'
+import { RigidBatch } from '../RigidBatch'
 import { PIVOT_HEIGHT, driveFighter, useFighterRigObject } from '../useFighterRig'
 import { VOID_COLORS, buildVoidBody } from './buildVoidBody'
 
@@ -56,6 +57,18 @@ export function VoidFighter() {
       echo.ghost.dispose()
     },
     [fr, body, echo],
+  )
+
+  // Draw-call batching: the body and its echo each draw through one mesh/line per material.
+  // (Built after the body: the batch collects the parts the body attached to the rig.)
+  const batch = useMemo(() => new RigidBatch(fr.outer, 'void', body.materials), [fr, body])
+  const echoBatch = useMemo(() => new RigidBatch(echoOuter, 'void-echo'), [echoOuter])
+  useEffect(
+    () => () => {
+      batch.dispose()
+      echoBatch.dispose()
+    },
+    [batch, echoBatch],
   )
 
   const light = useMemo(() => new PointLight(new Color(0.55, 0.2, 1.0), 0, 5, 2), [])
@@ -118,12 +131,15 @@ export function VoidFighter() {
     fr.rig.jointWorld('chest', scratch.p)
     light.position.copy(scratch.p)
     light.intensity = f.reveal * (0.4 + f.energy * 1.5 + ph * 3)
+
+    batch.update(fr.outer.visible)
+    echoBatch.update(echoOuter.visible)
   }, FRAME_STAGE.WORLD)
 
   return (
     <>
-      <primitive object={fr.outer} dispose={null} />
-      <primitive object={echoOuter} dispose={null} />
+      <primitive object={batch.group} dispose={null} />
+      <primitive object={echoBatch.group} dispose={null} />
       <primitive object={light} dispose={null} />
     </>
   )

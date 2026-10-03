@@ -12,6 +12,7 @@ import { useWorld } from '../../scenes/WorldContext'
 import { smoothstep } from '../../../utils/math'
 import { createFighterUniforms } from '../fighterMaterials'
 import { disposeGeometries } from '../bodyParts'
+import { RigidBatch } from '../RigidBatch'
 import { driveFighter, useFighterRigObject } from '../useFighterRig'
 import { VELOCITY_COLORS, buildVelocityBody } from './buildVelocityBody'
 
@@ -40,6 +41,10 @@ export function VelocityFighter() {
     [fr, body],
   )
 
+  // Draw-call batching: ~50 body parts draw through one mesh/line per material.
+  const batch = useMemo(() => new RigidBatch(fr.outer, 'velocity', body.materials), [fr, body])
+  useEffect(() => () => batch.dispose(), [batch])
+
   const light = useMemo(() => {
     const l = new PointLight(new Color(0.45, 0.95, 1.0), 0, 7, 2)
     return l
@@ -62,6 +67,7 @@ export function VelocityFighter() {
   useFrame(() => {
     const f = engine.state.fighters.velocity
     driveFighter(f, fr, VELOCITY_POSES, VELOCITY_POSES.idle, engine)
+    batch.update(fr.outer.visible)
     uniforms.uReveal.value = f.reveal
     const e = 0.45 + f.energy * 0.9
     body.materials.accent.color.copy(ACCENT).multiplyScalar(e)
@@ -102,13 +108,13 @@ export function VelocityFighter() {
 
   return (
     <>
-      <primitive object={fr.outer} dispose={null} />
+      <primitive object={batch.group} dispose={null} />
       <primitive object={light} dispose={null} />
       {trails.limbs.map((t, i) => (
-        <primitive key={i} object={t.mesh} dispose={null} />
+        <primitive key={i} name="velocity-trails" object={t.mesh} dispose={null} />
       ))}
-      <primitive object={trails.scarf.mesh} dispose={null} />
-      <primitive object={ghosts.mesh} dispose={null} />
+      <primitive name="velocity-trails" object={trails.scarf.mesh} dispose={null} />
+      <primitive name="velocity-ghosts" object={ghosts.mesh} dispose={null} />
       <CodeCore rig={fr.rig} />
     </>
   )

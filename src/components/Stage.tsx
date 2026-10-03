@@ -29,7 +29,7 @@ export function Stage() {
         preserveDrawingBuffer: debug,
       }}
       camera={{ fov: 26, near: 0.05, far: 400, position: [0.55, 0.32, 2.4] }}
-      onCreated={({ gl }) => {
+      onCreated={({ gl, scene }) => {
         gl.setClearColor('#020405', 1)
         const canvas = gl.domElement
         canvas.addEventListener('webglcontextlost', (event) => {
@@ -39,7 +39,7 @@ export function Stage() {
         canvas.addEventListener('webglcontextrestored', () => useExperience.getState().setRendererError(null))
         if (debug) {
           gl.info.autoReset = false
-          attachRendererToDebugHandle(gl)
+          attachRendererToDebugHandle(gl, scene)
         }
       }}
     >

@@ -119,5 +119,5 @@ export function BackgroundField() {
     material.uniforms.uReveal.value = engine.state.world.reveal
   }, FRAME_STAGE.WORLD)
 
-  return <points geometry={geometry} material={material} frustumCulled={false} dispose={null} />
+  return <points name="background" geometry={geometry} material={material} frustumCulled={false} dispose={null} />
 }

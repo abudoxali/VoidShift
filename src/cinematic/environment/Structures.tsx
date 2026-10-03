@@ -139,5 +139,5 @@ export function Structures() {
     parts.stripMat.color.setRGB(0.25 * s * flick, 0.85 * s * flick, 1.05 * s * flick)
   }, FRAME_STAGE.WORLD)
 
-  return <primitive object={parts.root} dispose={null} />
+  return <primitive name="structures" object={parts.root} dispose={null} />
 }

@@ -143,8 +143,8 @@ export function Anchor() {
 
   return (
     <>
-      <primitive object={parts.root} />
-      <primitive object={parts.beacon} />
+      <primitive name="anchor" object={parts.root} />
+      <primitive name="anchor" object={parts.beacon} />
     </>
   )
 }

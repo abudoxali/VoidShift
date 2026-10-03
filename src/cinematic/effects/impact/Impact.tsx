@@ -234,7 +234,7 @@ export function Impact() {
     parts.ember.intensity = im.crater * (1.2 + Math.exp(-age * 0.8) * 4)
   }, FRAME_STAGE.WORLD)
 
-  return <primitive object={parts.root} dispose={null} />
+  return <primitive name="impact" object={parts.root} dispose={null} />
 }
 
 function smoothstep01(x: number): number {

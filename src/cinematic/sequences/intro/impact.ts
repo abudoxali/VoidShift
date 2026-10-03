@@ -5,14 +5,16 @@ import { MARKS } from './marks'
 import { arc, burst, flash, impactFrame, moveTo, pose, set, shakeIf, tween } from './moves'
 
 /**
- * BEAT 09 — IMPACT → EXPLOSION → AFTERMATH (5.4 s).
+ * BEAT 09 — IMPACT → EXPLOSION → AFTERMATH (4.8 s).
  * attack → contact (impact frame, hit-stop) → expansion (shockwave, rays, debris of geometry
  * and code, crater, light burst, camera trauma) → decay (light falls off, debris arcs, some of it
  * pulled back into VOID) → aftermath (haze, VELOCITY landed, VOID down, the world still humming).
  */
+const IMPACT_DURATION = 4.8
+
 export const impactSegment: PhaseSegment = {
   phase: 'IMPACT',
-  duration: 5.4,
+  duration: IMPACT_DURATION,
   build(ctx) {
     const { tl, state, at, motion } = ctx
     const i = state.impact
@@ -28,7 +30,7 @@ export const impactSegment: PhaseSegment = {
     tl.set(state.core, { charge: 0, overload: 0 }, at(0))
     flash(ctx, 0.067, 0.8, 0.28)
     tl.set(i, { age: 0 }, at(0))
-    tl.to(i, { age: 5.4, duration: 5.4, ease: 'none' }, at(0))
+    tl.to(i, { age: IMPACT_DURATION, duration: IMPACT_DURATION, ease: 'none' }, at(0))
     tl.to(i, { light: 1, duration: 0.02 }, at(0.067))
     tl.to(i, { light: 0.12, duration: 2.2, ease: 'power3.out' }, at(0.15))
     tl.to(state.fx, { radial: 1, duration: 0.04 }, at(0.03))
@@ -46,7 +48,7 @@ export const impactSegment: PhaseSegment = {
     tl.to(i, { shock: 1, duration: 1.1, ease: 'power2.out' }, at(0.13))
     tl.to(i, { crater: 1, duration: 0.22, ease: 'expo.out' }, at(0.13))
     tl.to(i, { smoke: 1, duration: 2.4, ease: 'power2.out' }, at(0.3))
-    tl.to(i, { smoke: 0.35, duration: 2.2, ease: 'sine.inOut' }, at(2.7))
+    tl.to(i, { smoke: 0.35, duration: 1.8, ease: 'sine.inOut' }, at(2.7))
     shot(ctx, 'IMPACT_WIDE', 0.14)
 
     // VOID is driven into the floor and folds.
@@ -75,10 +77,11 @@ export const impactSegment: PhaseSegment = {
     // Aftermath.
     shot(ctx, 'AFTERMATH', 1.7)
     ctx.cue(CUES.AFTERMATH, 1.7)
-    shot(ctx, 'AFTERMATH_PUSH', 1.72, { duration: 3.7, ease: 'sine.inOut' })
+    shot(ctx, 'AFTERMATH_PUSH', 1.72, { duration: IMPACT_DURATION - 1.72, ease: 'sine.inOut' })
     tl.to(state.lights, { key: 0.55, ambient: 0.35, duration: 2.0 }, at(1.7))
     pose(ctx, 'velocity', 'idle', 2.9, 1.0, 'power2.inOut')
-    tl.to(i, { crater: 0.75, duration: 2.5, ease: 'sine.inOut' }, at(2.4))
-    tl.to(state.fx, { exposure: 0.55, duration: 1.6, ease: 'sine.in' }, at(3.8))
+    tl.to(i, { crater: 0.75, duration: 2.2, ease: 'sine.inOut' }, at(2.4))
+    // The world settles toward darkness: the end of the intro.
+    tl.to(state.fx, { exposure: 0.32, duration: 1.5, ease: 'sine.in' }, at(IMPACT_DURATION - 1.5))
   },
 }

@@ -92,5 +92,5 @@ export function Bursts() {
     setParticleCount(geometry, SLOTS * PER_SLOT)
   }, [geometry, material, profile.tier])
 
-  return <primitive object={lines} />
+  return <primitive name="bursts" object={lines} />
 }

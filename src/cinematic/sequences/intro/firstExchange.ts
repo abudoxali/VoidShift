@@ -82,8 +82,11 @@ export const firstExchangeSegment: PhaseSegment = {
     pose(ctx, 'velocity', 'land', 2.18, 0.1, 'power2.out')
     ctx.cue(CUES.LAND, 2.22)
     burst(ctx, BURST.DUST, { x: MARKS.dodge.x, y: 0.05, z: MARKS.dodge.z }, 2.22, 0.8)
-    pose(ctx, 'velocity', 'ready', 2.42, 0.3, 'power2.out')
+    pose(ctx, 'velocity', 'ready', 2.42, 0.25, 'power2.out')
     pose(ctx, 'void', 'guard', 2.0, 0.4, 'power2.inOut')
     tween(ctx, 'velocity', { energy: 0.7 }, 2.4, 0.5)
+    // Reset → coil: the camera leans in while VELOCITY sinks for the next entry.
+    shot(ctx, 'THREE_Q_PUSH', 2.45, { duration: 0.75, ease: 'sine.inOut' })
+    pose(ctx, 'velocity', 'crouch', 2.85, 0.3, 'power2.inOut')
   },
 }

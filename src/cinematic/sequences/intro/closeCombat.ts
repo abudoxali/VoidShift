@@ -75,7 +75,23 @@ export const closeCombatSegment: PhaseSegment = {
     burst(ctx, BURST.DUST, { x: MARKS.vaultLanding.x, y: 0.05, z: MARKS.vaultLanding.z }, landAt + 0.02, 0.8)
     tween(ctx, 'void', { yaw: YAW.west }, 1.55, 0.4, 'power3.inOut')
     pose(ctx, 'void', 'guard', 1.6, 0.4, 'power2.inOut')
-    pose(ctx, 'velocity', 'ready', landAt + 0.22, 0.3, 'power2.out')
+    pose(ctx, 'velocity', 'ready', landAt + 0.22, 0.2, 'power2.out')
+
+    // 4. VOID answers: a lunging reach that VELOCITY ducks under.
+    const duckAt = R ? 2.45 : 2.2
+    const lunge = { x: MARKS.voidHome.x - 0.4, y: 0, z: -0.05 }
+    shot(ctx, 'COUNTER_CLOSE', duckAt - 0.08)
+    pose(ctx, 'void', 'counter', duckAt - 0.06, 0.12, 'back.out(1.8)')
+    moveTo(ctx, 'void', lunge, duckAt - 0.06, R ? 0.25 : 0.16, R ? 'sine.inOut' : 'expo.out')
+    ctx.cue(CUES.VOID_COUNTER, duckAt)
+    burst(ctx, BURST.VOID, { x: MARKS.vaultLanding.x + 0.15, y: CHEST + 0.25, z: MARKS.vaultLanding.z }, duckAt, 0.6)
+    shakeIf(ctx, duckAt, 0.2)
+    pose(ctx, 'velocity', 'crouch', duckAt - 0.02, 0.07, 'expo.out')
+    tween(ctx, 'void', { energy: 0.9 }, duckAt - 0.06, 0.12)
+    tween(ctx, 'void', { energy: 0.4 }, duckAt + 0.2, 0.3)
+    pose(ctx, 'velocity', 'ready', duckAt + 0.3, 0.22, 'power2.out')
+    moveTo(ctx, 'void', MARKS.voidHome, duckAt + 0.35, 0.3, 'power2.inOut')
+    pose(ctx, 'void', 'guard', duckAt + 0.35, 0.25, 'power2.inOut')
     tl.to(state.fx, { lens: 0.45, duration: 0.3, ease: 'sine.inOut' }, at(2.4))
   },
 }

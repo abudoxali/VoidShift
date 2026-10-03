@@ -47,6 +47,10 @@ export const SHOTS = {
   WIDE: { mode: 'FREEZE', position: [0, 1.1, 6.6], target: [0, 1.0, 0], fov: 36, lag: 0, breathe: 0, portrait: { position: [-7.6, 3.4, 5.2], target: [0.6, 0.9, -0.3], fov: 52 } },
   WIDE_PUSH: { mode: 'FREEZE', position: [0, 1.0, 5.7], target: [0, 1.05, 0], fov: 35, lag: 0, breathe: 0, portrait: { position: [-6.8, 3.1, 4.6], target: [0.6, 0.95, -0.3], fov: 50 } },
 
+  /** Standoff insert: VOID's slit eye as it raises its guard. */
+  STANDOFF_VOID: { mode: 'FREEZE', position: [1.05, 1.45, 2.05], target: [2.3, 1.6, 0], fov: 30, lag: 0, breathe: 0, portrait: { position: [1.2, 1.45, 2.7], target: [2.3, 1.5, 0], fov: 48 } },
+  STANDOFF_VOID_PUSH: { mode: 'FREEZE', position: [1.3, 1.5, 1.75], target: [2.3, 1.62, 0], fov: 29, lag: 0, breathe: 0, portrait: { position: [1.4, 1.5, 2.4], target: [2.3, 1.55, 0], fov: 46 } },
+
   // ── First exchange ─────────────────────────────────────────────────────────
   /** Low behind VELOCITY's shoulder: the crouch in the foreground, VOID ahead. */
   LOW_PREP: { mode: 'FREEZE', position: [-4.1, 0.38, 1.6], target: [0.6, 1.05, -0.2], fov: 38, lag: 0, breathe: 0, portrait: { position: [-4.6, 0.6, 1.0], target: [1.0, 1.0, -0.2], fov: 54 } },
@@ -68,11 +72,17 @@ export const SHOTS = {
   /** 3/4 wide: both fighters readable after the pass. */
   THREE_Q: { mode: 'FREEZE', position: [3.4, 1.35, 6.4], target: [3.7, 0.95, 0], fov: 38, lag: 0, breathe: 0, portrait: { position: [8.8, 2.8, 4.0], target: [3.6, 0.9, 0], fov: 54 } },
 
+  /** Slow push on the reset after the back-flip: the next attack is coiling. */
+  THREE_Q_PUSH: { mode: 'FREEZE', position: [3.9, 1.15, 4.9], target: [4.3, 0.95, 0], fov: 36, lag: 0, breathe: 0, portrait: { position: [8.0, 2.4, 3.4], target: [3.8, 0.9, 0], fov: 52 } },
+
   // ── Close combat ───────────────────────────────────────────────────────────
   CLOSE_COMBAT: { mode: 'FREEZE', position: [4.5, 1.15, 3.5], target: [3.0, 1.15, 0], fov: 36, lag: 0, breathe: 0, portrait: { position: [5.6, 1.4, 4.2], target: [3.2, 1.1, 0], fov: 54 } },
   /** Low, looking up as VELOCITY vaults over VOID. */
   OVER_LOW: { mode: 'FREEZE', position: [2.2, 0.3, 3.0], target: [2.0, 1.9, 0], fov: 46, lag: 0, breathe: 0, portrait: { position: [2.2, 0.35, 3.8], target: [2.0, 1.7, 0], fov: 60 } },
   THREE_Q_LEFT: { mode: 'FREEZE', position: [-0.4, 1.3, 5.6], target: [1.6, 1.0, 0], fov: 38, lag: 0, breathe: 0, portrait: { position: [-4.8, 2.6, 3.6], target: [1.6, 0.9, 0], fov: 54 } },
+
+  /** VOID's counter-lunge; VELOCITY ducks under it. */
+  COUNTER_CLOSE: { mode: 'FREEZE', position: [1.15, 0.85, 3.0], target: [1.45, 1.05, -0.15], fov: 38, lag: 0, breathe: 0, portrait: { position: [1.2, 1.0, 3.9], target: [1.45, 1.0, -0.15], fov: 56 } },
 
   // ── Teleport / deception ───────────────────────────────────────────────────
   THROW_LOW: { mode: 'FREEZE', position: [-1.1, 0.7, 1.9], target: [3.0, 1.3, -0.4], fov: 38, lag: 0, breathe: 0, portrait: { position: [-1.6, 0.9, 2.2], target: [3.0, 1.2, -0.4], fov: 54 } },

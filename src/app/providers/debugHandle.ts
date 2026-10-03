@@ -1,4 +1,4 @@
-import type { WebGLRenderer } from 'three'
+import type { Object3D, Scene, WebGLRenderer } from 'three'
 import { AudioDirector } from '../../cinematic/audio/AudioDirector'
 import type { CinematicEngine } from '../../cinematic/engine/CinematicEngine'
 import { snapshotState } from '../../cinematic/engine/CinematicState'
@@ -8,6 +8,9 @@ import { lastFrameStats } from '../../utils/renderStats'
 export interface VoidShiftDebugHandle {
   engine: CinematicEngine
   renderer: WebGLRenderer | null
+  scene: Scene | null
+  /** Visible renderables per named subsystem (approximate draw-call sources; post passes excluded). */
+  drawBreakdown(): Record<string, number>
   seek(time: number): void
   pause(): void
   play(): void
@@ -30,6 +33,8 @@ export function exposeDebugHandle(engine: CinematicEngine): () => void {
   const handle: VoidShiftDebugHandle = {
     engine,
     renderer: null,
+    scene: null,
+    drawBreakdown: () => (handle.scene ? breakdown(handle.scene) : {}),
     seek: (t) => engine.seek(t),
     pause: () => engine.pause(),
     play: () => engine.play(),
@@ -54,8 +59,24 @@ export function exposeDebugHandle(engine: CinematicEngine): () => void {
   }
 }
 
-export function attachRendererToDebugHandle(renderer: WebGLRenderer): void {
-  if (window.__VOIDSHIFT__) window.__VOIDSHIFT__.renderer = renderer
+export function attachRendererToDebugHandle(renderer: WebGLRenderer, scene: Scene): void {
+  if (window.__VOIDSHIFT__) {
+    window.__VOIDSHIFT__.renderer = renderer
+    window.__VOIDSHIFT__.scene = scene
+  }
+}
+
+function breakdown(scene: Scene): Record<string, number> {
+  const out: Record<string, number> = {}
+  const visit = (o: Object3D, label: string) => {
+    if (!o.visible) return
+    const name = o.name || label
+    const r = o as Object3D & { isMesh?: boolean; isLine?: boolean; isPoints?: boolean; material?: { visible?: boolean } | Array<{ visible?: boolean }> }
+    if ((r.isMesh || r.isLine || r.isPoints) && r.material && !Array.isArray(r.material) && r.material.visible !== false) out[name] = (out[name] ?? 0) + 1
+    for (const c of o.children) visit(c, name)
+  }
+  visit(scene, 'scene')
+  return out
 }
 
 /** 16-bit PCM WAV, base64 (debug export only). */

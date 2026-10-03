@@ -18,7 +18,9 @@ export const coreChargeSegment: PhaseSegment = {
     const c = state.core
     shot(ctx, 'HERO_LOW_PUSH', 0.02, { duration: 0.98, ease: 'sine.inOut' })
     ctx.cue(CUES.CORE_FORM, 0)
-    tl.to(c, { charge: 1, duration: 1.7, ease: 'power1.in' }, at(0))
+    // Forms fast (it is answering a decision already made), then keeps feeding.
+    tl.to(c, { charge: 0.55, duration: 0.45, ease: 'power2.out' }, at(0))
+    tl.to(c, { charge: 1, duration: 1.25, ease: 'power1.in' }, at(0.45))
     tl.to(state.lights, { key: 0.25, ambient: 0.25, duration: 1.2 }, at(0.1))
     tween(ctx, 'velocity', { energy: 1 }, 0, 0.5)
     // Held, but alive: a slow drift of the whole hero frame.
