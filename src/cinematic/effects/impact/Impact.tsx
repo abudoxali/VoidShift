@@ -72,7 +72,7 @@ export function Impact() {
     root.add(dome, coreFlash, shockRing, shockRing2)
 
     // Geometry shards: lit, faceted, hot when they leave and cooling as they fall.
-    const shardCount = lite ? 60 : 110
+    const shardCount = lite ? 40 : 64
     const shardMat = new MeshStandardMaterial({ color: 0x1b2a31, metalness: 0.4, roughness: 0.35, flatShading: true, emissive: new Color(0.4, 1.4, 1.9), emissiveIntensity: 0 })
     const shards = new InstancedMesh(new TetrahedronGeometry(1, 0).scale(1, 0.45, 0.7), shardMat, shardCount)
     shards.instanceMatrix.setUsage(DynamicDrawUsage)
@@ -82,7 +82,7 @@ export function Impact() {
     // Code glyph debris: tokens of the destroyed construct, one instance per character.
     const glyphRng = createRng(77)
     const glyphTokens: Array<{ piece: number; char: number; col: number }> = []
-    const glyphPieces = createDebris(lite ? 40 : 70, 202, 0.35, 0.9)
+    const glyphPieces = createDebris(lite ? 24 : 36, 202, 0.35, 0.9)
     glyphPieces.forEach((_, i) => {
       const tok = TOKENS[Math.floor(glyphRng() * TOKENS.length)]
       ;[...tok].forEach((ch, col) => glyphTokens.push({ piece: i, char: glyphIndex(ch), col }))

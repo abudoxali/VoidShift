@@ -18,6 +18,7 @@ export function ReviewPanel() {
   const quality = useExperience((s) => s.quality)
   const [, setTick] = useState(0)
   const [scrubbing, setScrubbing] = useState(false)
+  const [collapsed, setCollapsed] = useState(false)
 
   // Re-render ~12×/s for the time, scene and shot readouts (UI only; not per frame).
   useEffect(() => {
@@ -38,12 +39,25 @@ export function ReviewPanel() {
   }
   const set = useExperience.getState().setReview
 
+  // Collapsed: a small pill, so the panel never has to cover the frame being reviewed (phones).
+  if (collapsed)
+    return (
+      <aside className="review review--collapsed" aria-label="Review controls">
+        <button type="button" onClick={() => setCollapsed(false)} aria-expanded={false}>
+          Review · {now.toFixed(2)}s · {engine.shot?.name ?? '—'}
+        </button>
+      </aside>
+    )
+
   return (
     <aside className="review" aria-label="Review controls">
       <div className="review__row review__readout">
         <span className="review__time">{now.toFixed(2)}s / {engine.duration.toFixed(1)}s</span>
         <span className="review__scene">{engine.scene?.label ?? '—'}</span>
         <span className="review__shot">{engine.shot?.name ?? '—'}</span>
+        <button type="button" className="review__hide" onClick={() => setCollapsed(true)} aria-expanded={true} aria-label="Hide review panel">
+          ▾
+        </button>
       </div>
       <input
         className="review__scrub"

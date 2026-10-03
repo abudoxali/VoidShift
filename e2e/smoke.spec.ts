@@ -231,6 +231,13 @@ test('review mode: scene URL lands on the scene; controls drive the engine', asy
   await expect(page.locator('.camdebug')).toBeVisible()
   await page.waitForTimeout(800)
   expect(await litFraction(page)).toBeGreaterThan(0.02)
+
+  // The panel collapses to a pill (phones) and expands again with its state intact.
+  await panel.getByRole('button', { name: 'Hide review panel' }).click()
+  await expect(panel.getByRole('button', { name: /^Review/ })).toBeVisible()
+  await expect(panel.getByRole('button', { name: 'Next shot' })).toHaveCount(0)
+  await panel.getByRole('button', { name: /^Review/ }).click()
+  await expect(panel.getByRole('button', { name: /^FX/ })).toHaveText('FX off')
   expect(problems, problems.join('\n')).toEqual([])
 })
 

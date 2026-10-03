@@ -264,6 +264,8 @@ body,
 }
 .review button[aria-pressed='true'], .review button.is-active { background: rgba(60, 150, 175, 0.55); color: #fff; }
 .review__scenes button { padding: 3px 6px; }
+.review--collapsed { width: auto; padding: 4px; }
+.review .review__hide { padding: 0 6px; line-height: 1.4; }
 .camdebug { position: fixed; inset: 0; z-index: 25; pointer-events: none; }
 .camdebug__thirds {
   position: absolute;
