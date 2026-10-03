@@ -28,7 +28,7 @@ export type CinematicPhase = (typeof CINEMATIC_PHASES)[number]
 export type CameraMode = 'ESTABLISH' | 'TRACK' | 'CHASE' | 'ORBIT' | 'FREEZE' | 'IMPACT' | 'REVEAL'
 
 /** Entities the camera (and other systems) can reference by name. */
-export type EntityId = 'velocity' | 'void' | 'origin'
+export type EntityId = 'velocity' | 'void' | 'origin' | 'anchor' | 'impact'
 
 export type QualityTier = 'ULTRA' | 'HIGH' | 'LITE'
 

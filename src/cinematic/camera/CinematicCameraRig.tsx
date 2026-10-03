@@ -22,7 +22,16 @@ export function CinematicCameraRig() {
   const dpr = useThree((s) => s.viewport.dpr)
   const [rig] = useState(() => new CameraRig())
   const resolve = useCallback(
-    (id: EntityId): Vector3 => (id === 'velocity' ? uniforms.uVelocityPos.value : id === 'void' ? engine.state.void.position : ORIGIN),
+    (id: EntityId): Vector3 =>
+      id === 'velocity'
+        ? uniforms.uVelocityPos.value
+        : id === 'void'
+          ? uniforms.uVoidPos.value
+          : id === 'anchor'
+            ? engine.state.anchor.position
+            : id === 'impact'
+              ? engine.state.impact.position
+              : ORIGIN,
     [engine, uniforms],
   )
 

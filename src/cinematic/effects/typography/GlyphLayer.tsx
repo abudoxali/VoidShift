@@ -44,6 +44,14 @@ export function GlyphLayer({ children }: { children: ReactNode }) {
   )
 }
 
+/** The shared SDF atlas uniforms, for other systems that draw glyphs as matter (debris). */
+export function useGlyphAtlasUniforms() {
+  const field = use(GlyphContext)
+  if (!field) throw new Error('useGlyphAtlasUniforms must be used inside <GlyphLayer>')
+  const u = field.mesh.material.uniforms
+  return { uAtlas: u.uAtlas, uGrid: u.uGrid, uCellScale: u.uCellScale }
+}
+
 /**
  * Reserves a label for the lifetime of the calling component. Read `ref.current` inside
  * `useFrame` (it is null until mounted).

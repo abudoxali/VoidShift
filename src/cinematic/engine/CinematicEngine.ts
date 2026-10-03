@@ -82,7 +82,7 @@ export class CinematicEngine {
     this.timeline = new CinematicTimeline(sequence, this.state, motion, layout)
     this.currentPhase = this.timeline.phaseAt(0)
     this.playing = autoplay
-    this.prevVelocityPos.copy(this.state.velocity.position)
+    this.prevVelocityPos.copy(this.state.fighters.velocity.position)
   }
 
   get duration(): number {
@@ -111,6 +111,11 @@ export class CinematicEngine {
 
   get cues() {
     return this.timeline.cues
+  }
+
+  /** Authoring check — see CinematicTimeline.overlaps. */
+  overlaps() {
+    return this.timeline.overlaps()
   }
 
   on<K extends keyof EngineEvents>(event: K, fn: EngineEvents[K]): () => void {
@@ -224,10 +229,10 @@ export class CinematicEngine {
   }
 
   private updateDerived(dt: number): void {
-    const pos = this.state.velocity.position
+    const pos = this.state.fighters.velocity.position
     const motion = this.derived.velocityMotion
     // Repositioning while invisible is a placement, not motion: never derive speed from it.
-    const visible = this.state.velocity.reveal > 0
+    const visible = this.state.fighters.velocity.reveal > 0
     if (dt > 0 && visible && this.prevVelocityVisible) {
       motion.subVectors(pos, this.prevVelocityPos).divideScalar(dt)
     } else {
@@ -239,8 +244,8 @@ export class CinematicEngine {
   }
 
   private resetDerived(): void {
-    this.prevVelocityPos.copy(this.state.velocity.position)
-    this.prevVelocityVisible = this.state.velocity.reveal > 0
+    this.prevVelocityPos.copy(this.state.fighters.velocity.position)
+    this.prevVelocityVisible = this.state.fighters.velocity.reveal > 0
     this.derived.velocityMotion.set(0, 0, 0)
     this.derived.velocitySpeed = 0
   }

@@ -30,6 +30,11 @@ export interface SegmentContext {
   at(local: number): number
   /** Registers a cue at segment-local time. */
   cue(name: string, local: number, data?: Record<string, number>): void
+  /**
+   * Build-time memory shared by every segment of one compilation (e.g. the last pose scheduled
+   * per fighter, so a pose transition knows what it blends from). Never read at playback.
+   */
+  readonly memory: Map<string, unknown>
 }
 
 export interface PhaseSegment {
@@ -53,6 +58,8 @@ export interface SequenceDefinition {
  * own ticker. The CinematicEngine samples it with `sample(time)` from the render loop,
  * which makes the cinematic fully deterministic, seekable and testable without a browser.
  */
+const RESERVED = new Set(['parent', 'id', 'callbackScope', 'paused', 'runBackwards', 'startAt', 'lazy', 'duration', 'ease', 'delay', 'onComplete', 'onUpdate', 'onStart', 'immediateRender', 'overwrite', 'repeat', 'yoyo', 'stagger', 'data'])
+
 export class CinematicTimeline {
   readonly id: string
   readonly duration: number
@@ -68,6 +75,7 @@ export class CinematicTimeline {
     const cues: CueEvent[] = []
 
     let cursor = 0
+    const memory = new Map<string, unknown>()
     for (const segment of definition.segments) {
       const duration = typeof segment.duration === 'function' ? segment.duration(motion) : segment.duration
       const start = cursor
@@ -78,6 +86,7 @@ export class CinematicTimeline {
         layout,
         start,
         duration,
+        memory,
         at: (local) => start + local,
         cue: (name, local, data = {}) => {
           if (local < 0 || local > duration) {
@@ -100,7 +109,42 @@ export class CinematicTimeline {
     this.phases = phases
     this.cues = cues
     this.tl = tl
+    // Prime: render the whole timeline once so every tween records its start values in timeline
+    // order. Playback, seeks and jumps then all read the same recorded values (determinism).
+    this.tl.time(cursor, true)
     this.tl.time(0, true)
+  }
+
+  /**
+   * Authoring check: tweens that drive the same property of the same object over overlapping
+   * time ranges. Their result depends on render order, and priming makes the later one start
+   * from the earlier one's END value — a visible pop. Returned for tests / debugging.
+   */
+  overlaps(): Array<{ property: string; a: [number, number]; b: [number, number] }> {
+    const spans: Array<{ target: object; property: string; start: number; end: number }> = []
+    for (const child of this.tl.getChildren(true, true, false)) {
+      const tween = child as gsap.core.Tween
+      const duration = tween.duration()
+      if (duration <= 0) continue
+      const start = tween.startTime()
+      const vars = tween.vars as Record<string, unknown>
+      for (const target of tween.targets() as object[]) {
+        for (const property of Object.keys(vars)) {
+          if (RESERVED.has(property)) continue
+          spans.push({ target, property, start, end: start + duration })
+        }
+      }
+    }
+    const found: Array<{ property: string; a: [number, number]; b: [number, number] }> = []
+    for (let i = 0; i < spans.length; i++) {
+      for (let j = i + 1; j < spans.length; j++) {
+        const a = spans[i]
+        const b = spans[j]
+        if (a.target !== b.target || a.property !== b.property) continue
+        if (a.start < b.end - 1e-6 && b.start < a.end - 1e-6) found.push({ property: a.property, a: [a.start, a.end], b: [b.start, b.end] })
+      }
+    }
+    return found
   }
 
   /** Writes the state for an absolute time. Safe to call in any order (forward, backward, jumps). */

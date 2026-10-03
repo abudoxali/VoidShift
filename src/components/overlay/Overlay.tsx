@@ -5,11 +5,15 @@ import { PerfReadout } from './PerfReadout'
 import { Timecode } from './Timecode'
 
 const PHASE_DESCRIPTIONS: Partial<Record<string, string>> = {
-  BOOT: 'A single coordinate appears in darkness and draws the axes of a new space.',
-  REVEAL: 'A computational grid resolves outward from the origin.',
-  SPAWN: 'Velocity arrives at its published coordinate; then space bends and the Void tears open.',
-  ENGAGE: 'Velocity locks a vector onto the Void, winds up and launches at impossible speed.',
-  PHASE: 'The Void leaves solid space: both attacks pass straight through it. Ordinary vectors cannot make contact.',
+  BOOT: 'Darkness. A single coordinate draws the axes of a new space.',
+  REVEAL: 'Velocity assembles from light. Across the field, the Void stands up.',
+  SPAWN: 'Standoff. Neither moves first.',
+  ENGAGE: 'Velocity dashes in; the strike passes through a phased Void, which answers.',
+  PHASE: 'Close combat: blocks, a spin kick read and slipped, a vault over the Void.',
+  TELEPORT: 'An anchor is thrown past the Void and planted. Velocity vanishes.',
+  LOCK: 'Velocity reconstructs at the anchor, above and behind. The Void turns too late.',
+  CORE_CHARGE: 'A Code Core forms in Velocity’s hand. The Void tries to phase — and fails.',
+  IMPACT: 'Contact. The core detonates through the Void.',
 }
 
 /**

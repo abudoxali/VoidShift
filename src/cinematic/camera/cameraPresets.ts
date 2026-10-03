@@ -1,6 +1,3 @@
-import { Vector3 } from 'three'
-import { VELOCITY_HOME, VOID_HOME } from '../engine/CinematicState'
-import { ATTACK_1, ATTACK_2, toTuple } from '../engine/staging'
 import type { CameraMode, EntityId } from '../types'
 
 export type Vec3Tuple = readonly [number, number, number]
@@ -17,7 +14,7 @@ export interface ShotPreset {
   readonly roll?: number
   readonly track?: EntityId
   readonly trackWeight?: number
-  /** Rig damping rate (1/s). Lower = heavier, more cinematic lag. */
+  /** Rig damping rate (1/s). Lower = heavier, more cinematic lag. 0 = locked. */
   readonly lag: number
   readonly breathe: number
   /** 0..1 fit-width adaptation (default 1). Portrait-authored variants use 0. */
@@ -29,166 +26,88 @@ export interface ShotPreset {
 }
 
 /**
- * Shot library for the foundation sequence. Compositions are designed at 16:9 and
- * adapted to other aspect ratios by `computeFraming`.
+ * Shot vocabulary for the intro. Fighters stand on the floor; VELOCITY starts at x = -2.3,
+ * VOID at x = +2.3. Shots are mostly LOCKED (lag 0 / FREEZE) or short pushes between hard cuts:
+ * the camera moves when the action needs it and is still otherwise.
  *
- * Reference-derived intent: long held shots with slow drift, tight inserts before
- * violent action, and a wide two-shot with large negative space between the entities.
+ * Portrait variants look along the line between the fighters (their separation becomes
+ * vertical) or frame a single fighter tall.
  */
 export const SHOTS = {
-  /** Macro on the world origin: the first coordinate that exists. */
-  BOOT_ORIGIN: {
-    mode: 'FREEZE',
-    position: [0.55, 0.32, 2.4],
-    target: [0, 0, 0],
-    fov: 26,
-    lag: 0,
-    breathe: 0,
-  },
-  /** Crane up and back as the grid propagates outward. */
-  REVEAL_CRANE: {
-    mode: 'REVEAL',
-    position: [1.6, 3.4, 12.5],
-    target: [0, 0.4, -2],
-    fov: 40,
-    lag: 2.2,
-    breathe: 0.4,
-  },
-  /** Low, slightly tilted framing of the arrival coordinate, leaving space for the incoming streak. */
-  VELOCITY_ARRIVAL: {
-    mode: 'TRACK',
-    position: [-0.6, 0.85, 5.6],
-    target: [-3.1, 1.15, 0.2],
-    fov: 33,
-    roll: -0.035,
-    lag: 3.2,
-    breathe: 0.35,
-  },
-  /** Tight insert on the place where space starts to fail. */
-  VOID_INSERT: {
-    mode: 'TRACK',
-    position: [1.25, 1.75, 4.1],
-    target: [3.3, 1.45, -1.1],
-    fov: 29,
-    roll: 0.03,
-    track: 'void',
-    trackWeight: 0.5,
-    lag: 1.6,
-    breathe: 0.25,
-  },
-  /** Wide two-shot: both forces, held apart by empty computational space. */
-  STANDOFF: {
-    mode: 'ORBIT',
-    position: [0, 2.0, 12.2],
-    target: [0.05, 1.2, -0.45],
-    fov: 35,
-    lag: 1.4,
-    breathe: 0.55,
-    // Portrait: look down the line between them — the separation becomes vertical.
-    portrait: { position: [-11, 5.4, 4.8], target: [0.3, 0.9, -0.6], fov: 46 },
-  },
+  // ── Opening ────────────────────────────────────────────────────────────────
+  OPEN_DARK: { mode: 'FREEZE', position: [0.0, 0.32, 6.4], target: [0.4, 0.55, 0], fov: 30, lag: 0, breathe: 0, portrait: { position: [0, 0.5, 7.5], fov: 50 } },
+  OPEN_PUSH: { mode: 'FREEZE', position: [0.0, 0.42, 5.2], target: [0.2, 0.7, 0], fov: 32, lag: 0, breathe: 0, portrait: { position: [0, 0.6, 6.4], fov: 52 } },
+  /** Low 3/4 on VELOCITY as it assembles. */
+  REVEAL_VELOCITY: { mode: 'FREEZE', position: [-0.9, 0.42, 2.5], target: [-2.4, 1.15, 0], fov: 36, lag: 0, breathe: 0, portrait: { position: [-1.3, 0.55, 3.2], target: [-2.3, 1.0, 0], fov: 54 } },
+  REVEAL_VELOCITY_PUSH: { mode: 'FREEZE', position: [-1.15, 0.55, 2.1], target: [-2.35, 1.3, 0], fov: 34, lag: 0, breathe: 0, portrait: { position: [-1.5, 0.65, 2.8], target: [-2.3, 1.15, 0], fov: 52 } },
+  /** Low 3/4 on VOID rising out of the tear. */
+  REVEAL_VOID: { mode: 'FREEZE', position: [0.9, 0.5, 2.7], target: [2.4, 1.3, 0], fov: 34, lag: 0, breathe: 0, portrait: { position: [1.2, 0.6, 3.4], target: [2.3, 1.1, 0], fov: 54 } },
+  REVEAL_VOID_PUSH: { mode: 'FREEZE', position: [1.15, 0.6, 2.3], target: [2.35, 1.45, 0], fov: 32, lag: 0, breathe: 0, portrait: { position: [1.4, 0.7, 3.0], target: [2.3, 1.2, 0], fov: 52 } },
+  /** Establishing wide: both silhouettes, structures behind. */
+  WIDE: { mode: 'FREEZE', position: [0, 1.1, 6.6], target: [0, 1.0, 0], fov: 36, lag: 0, breathe: 0, portrait: { position: [-7.6, 3.4, 5.2], target: [0.6, 0.9, -0.3], fov: 52 } },
+  WIDE_PUSH: { mode: 'FREEZE', position: [0, 1.0, 5.7], target: [0, 1.05, 0], fov: 35, lag: 0, breathe: 0, portrait: { position: [-6.8, 3.1, 4.6], target: [0.6, 0.95, -0.3], fov: 50 } },
 
-  // ── ENGAGE / PHASE ────────────────────────────────────────────────────────
-  /** Tension creep: the two-shot tightens while nothing moves. */
-  STANDOFF_PUSH: {
-    mode: 'ESTABLISH',
-    position: [0.3, 1.8, 10.2],
-    target: [0.05, 1.25, -0.45],
-    fov: 33,
-    lag: 1.2,
-    breathe: 0.3,
-    portrait: { position: [-9.8, 4.7, 4.1], target: [0.4, 1.0, -0.6], fov: 44 },
-  },
-  /** Over-the-shoulder down the predicted vector: the camera commits to the attack line. */
-  ENGAGE_LINEUP: {
-    mode: 'TRACK',
-    position: toTuple(at(VELOCITY_HOME, ATTACK_1.dir, -4.4).add(new Vector3(0, 1.1, 2.3))),
-    target: toTuple(VOID_HOME),
-    fov: 30,
-    roll: -0.02,
-    lag: 2.4,
-    breathe: 0.2,
-    portrait: { position: toTuple(at(VELOCITY_HOME, ATTACK_1.dir, -3.6).add(new Vector3(0, 1.6, 0.9))), fov: 44 },
-  },
-  /** CHASE: rides behind the vector, looks ahead of it, FOV opens with speed. */
-  ATTACK_CHASE: {
+  // ── First exchange ─────────────────────────────────────────────────────────
+  /** Low behind VELOCITY's shoulder: the crouch in the foreground, VOID ahead. */
+  LOW_PREP: { mode: 'FREEZE', position: [-4.1, 0.38, 1.6], target: [0.6, 1.05, -0.2], fov: 38, lag: 0, breathe: 0, portrait: { position: [-4.6, 0.6, 1.0], target: [1.0, 1.0, -0.2], fov: 54 } },
+  /** Side tracking: rides alongside the dash. */
+  SIDE_TRACK: {
     mode: 'CHASE',
-    position: [-1.7, 0.5, 1.25],
-    target: toTuple(VOID_HOME),
+    position: [-0.4, 0.35, 3.6],
+    target: [0, 1.0, 0],
+    fov: 44,
+    track: 'velocity',
+    trackWeight: 1,
+    lead: 1.1,
+    lag: 14,
+    breathe: 0,
+    portrait: { position: [-0.8, 0.6, 4.6], fov: 58 },
+  },
+  /** Close on VOID as the strike passes through it. */
+  PHASE_CLOSE: { mode: 'FREEZE', position: [2.0, 1.25, 2.3], target: [2.3, 1.25, 0], fov: 34, lag: 0, breathe: 0, portrait: { position: [2.2, 1.3, 3.0], fov: 52 } },
+  /** 3/4 wide: both fighters readable after the pass. */
+  THREE_Q: { mode: 'FREEZE', position: [3.4, 1.35, 6.4], target: [3.7, 0.95, 0], fov: 38, lag: 0, breathe: 0, portrait: { position: [8.8, 2.8, 4.0], target: [3.6, 0.9, 0], fov: 54 } },
+
+  // ── Close combat ───────────────────────────────────────────────────────────
+  CLOSE_COMBAT: { mode: 'FREEZE', position: [4.5, 1.15, 3.5], target: [3.0, 1.15, 0], fov: 36, lag: 0, breathe: 0, portrait: { position: [5.6, 1.4, 4.2], target: [3.2, 1.1, 0], fov: 54 } },
+  /** Low, looking up as VELOCITY vaults over VOID. */
+  OVER_LOW: { mode: 'FREEZE', position: [2.2, 0.3, 3.0], target: [2.0, 1.9, 0], fov: 46, lag: 0, breathe: 0, portrait: { position: [2.2, 0.35, 3.8], target: [2.0, 1.7, 0], fov: 60 } },
+  THREE_Q_LEFT: { mode: 'FREEZE', position: [-0.4, 1.3, 5.6], target: [1.6, 1.0, 0], fov: 38, lag: 0, breathe: 0, portrait: { position: [-4.8, 2.6, 3.6], target: [1.6, 0.9, 0], fov: 54 } },
+
+  // ── Teleport / deception ───────────────────────────────────────────────────
+  THROW_LOW: { mode: 'FREEZE', position: [-1.1, 0.7, 1.9], target: [3.0, 1.3, -0.4], fov: 38, lag: 0, breathe: 0, portrait: { position: [-1.6, 0.9, 2.2], target: [3.0, 1.2, -0.4], fov: 54 } },
+  /** Insert: the planted anchor. */
+  MARKER_INSERT: { mode: 'FREEZE', position: [5.9, 0.55, 0.75], target: [4.95, 0.35, -0.45], fov: 30, lag: 0, breathe: 0, portrait: { position: [6.0, 0.7, 1.2], fov: 46 } },
+  MARKER_PUSH: { mode: 'FREEZE', position: [5.55, 0.48, 0.3], target: [4.95, 0.38, -0.45], fov: 28, lag: 0, breathe: 0, portrait: { position: [5.7, 0.6, 0.8], fov: 44 } },
+  SIDE_TRACK_B: {
+    mode: 'CHASE',
+    position: [-0.2, 0.4, 3.4],
+    target: [0, 1.0, 0],
     fov: 46,
     track: 'velocity',
     trackWeight: 1,
-    lead: 1.6,
-    lag: 7,
+    lead: 1.0,
+    lag: 14,
     breathe: 0,
-    portrait: { position: [-2.2, 0.9, 0.7], fov: 54 },
+    portrait: { position: [-0.5, 0.7, 4.4], fov: 58 },
   },
-  /** Hero insert: side-on at the core while the vector crawls through dilated space. */
-  INTERSECTION: {
-    mode: 'FREEZE',
-    position: toTuple(at(VOID_HOME, ATTACK_1.side, 4.3).add(new Vector3(0, 0.55, 0))),
-    target: toTuple(VOID_HOME),
-    fov: 32,
-    lag: 0,
-    breathe: 0,
-    portrait: { position: toTuple(at(VOID_HOME, ATTACK_1.side, 5.2).add(new Vector3(0, 1.3, 0))), fov: 50 },
-  },
-  INTERSECTION_PUSH: {
-    mode: 'FREEZE',
-    position: toTuple(at(VOID_HOME, ATTACK_1.side, 3.7).add(new Vector3(0, 0.45, 0))),
-    target: toTuple(at(VOID_HOME, ATTACK_1.dir, 0.25)),
-    fov: 30,
-    lag: 0,
-    breathe: 0,
-    portrait: { position: toTuple(at(VOID_HOME, ATTACK_1.side, 4.6).add(new Vector3(0, 1.2, 0))), fov: 48 },
-  },
-  /** The camera resolves what happened: from beyond the exit, looking back at an intact VOID. */
-  RECOVERY: {
-    mode: 'ESTABLISH',
-    position: [10.2, 2.5, 3.2],
-    target: [4.8, 1.5, -1.25],
-    fov: 38,
-    lag: 1.8,
-    breathe: 0.35,
-    portrait: { position: toTuple(at(ATTACK_1.exit, ATTACK_1.dir, 4.2).add(new Vector3(0, 2.6, 0.8))), target: [3.9, 1.3, -1.0], fov: 46 },
-  },
-  /** The tactical problem, from above: the adapted vector set against the core. */
-  SECOND_SETUP: {
-    mode: 'ESTABLISH',
-    position: [-1.2, 5.0, 10.2],
-    target: [3.9, 2.2, -0.6],
-    fov: 40,
-    lag: 1.5,
-    breathe: 0.3,
-    portrait: { position: toTuple(at(ATTACK_2.origin, ATTACK_2.dir, -3.4).add(new Vector3(0, 1.2, 0))), target: toTuple(VOID_HOME), fov: 48 },
-  },
-  /**
-   * Hero for the second pass: looking down across the attack line, so the split (which opens
-   * perpendicular to the line) reads across the frame and the vector visibly uses the gap.
-   */
-  SPLIT_HERO: {
-    mode: 'FREEZE',
-    position: toTuple(at(VOID_HOME, ATTACK_2.up, 4.8).addScaledVector(ATTACK_2.dir, -1.5)),
-    target: toTuple(at(VOID_HOME, ATTACK_2.dir, 0.6)),
-    fov: 38,
-    lag: 0,
-    breathe: 0,
-    portrait: { position: toTuple(at(VOID_HOME, ATTACK_2.up, 7.6).addScaledVector(ATTACK_2.dir, -1.2)), fov: 54 },
-  },
-  /** Held tension after two failed exchanges: the core intact, the vector behind it. */
-  FINAL_TENSION: {
-    mode: 'ORBIT',
-    position: [2.6, 1.6, 9.6],
-    target: [2.4, 1.15, -1.7],
-    fov: 34,
-    lag: 1.2,
-    breathe: 0.5,
-    portrait: { position: [1.0, 5.6, 9.0], target: [2.3, 1.0, -1.9], fov: 46 },
-  },
-} as const satisfies Record<string, ShotPreset>
+  /** Overhead: the deception becomes legible — VOID phased, the strike gone, the anchor behind it. */
+  OVERHEAD: { mode: 'FREEZE', position: [2.6, 8.4, 2.2], target: [3.0, 0.2, -0.3], fov: 44, lag: 0, breathe: 0, portrait: { position: [2.9, 9.6, 1.6], target: [3.1, 0.2, -0.3], fov: 56 } },
+  /** Past VOID's shoulder toward the reconstructed VELOCITY. */
+  BEHIND_VOID: { mode: 'FREEZE', position: [0.6, 1.6, 2.6], target: [4.4, 1.4, -0.4], fov: 40, lag: 0, breathe: 0, portrait: { position: [0.2, 1.9, 2.8], target: [4.2, 1.5, -0.4], fov: 56 } },
 
-function at(base: Vector3, dir: Vector3, d: number): Vector3 {
-  return base.clone().addScaledVector(dir, d)
-}
+  // ── Code Core ──────────────────────────────────────────────────────────────
+  /** Low, looking up at the inverted VELOCITY above VOID. */
+  HERO_LOW: { mode: 'FREEZE', position: [3.25, 0.85, 3.1], target: [2.6, 2.35, 0], fov: 50, lag: 0, breathe: 0, portrait: { position: [3.6, 0.5, 5.6], target: [2.65, 2.2, 0], fov: 58 } },
+  HERO_LOW_PUSH: { mode: 'FREEZE', position: [3.15, 0.95, 2.75], target: [2.6, 2.4, 0], fov: 50, lag: 0, breathe: 0, portrait: { position: [3.45, 0.6, 5.0], target: [2.65, 2.25, 0], fov: 56 } },
+  CORE_CLOSE: { mode: 'FREEZE', position: [3.75, 1.85, 1.75], target: [2.8, 2.1, -0.2], fov: 36, lag: 0, breathe: 0, portrait: { position: [3.85, 1.9, 2.4], fov: 50 } },
+  VOID_FACE: { mode: 'FREEZE', position: [1.15, 1.15, 1.75], target: [2.5, 2.05, -0.1], fov: 42, lag: 0, breathe: 0, portrait: { position: [1.2, 1.2, 2.3], fov: 52 } },
+
+  // ── Impact ─────────────────────────────────────────────────────────────────
+  IMPACT_HERO: { mode: 'IMPACT', position: [4.7, 1.0, 3.3], target: [2.7, 1.35, 0], fov: 40, lag: 0, breathe: 0, portrait: { position: [4.6, 1.1, 4.2], target: [2.7, 1.3, 0], fov: 58 } },
+  IMPACT_WIDE: { mode: 'IMPACT', position: [1.4, 1.6, 9.4], target: [2.6, 1.1, 0], fov: 42, lag: 0, breathe: 0, portrait: { position: [-4.2, 4.0, 7.4], target: [2.6, 1.0, 0], fov: 58 } },
+  AFTERMATH: { mode: 'FREEZE', position: [0.6, 1.9, 10.2], target: [2.8, 0.75, 0], fov: 38, lag: 0, breathe: 0, portrait: { position: [-4.6, 4.2, 8.0], target: [2.8, 0.6, 0], fov: 54 } },
+  AFTERMATH_PUSH: { mode: 'FREEZE', position: [1.2, 1.55, 8.4], target: [2.9, 0.75, 0], fov: 36, lag: 0, breathe: 0, portrait: { position: [-3.6, 3.6, 7.0], target: [2.9, 0.6, 0], fov: 52 } },
+} as const satisfies Record<string, ShotPreset>
 
 export type ShotName = keyof typeof SHOTS

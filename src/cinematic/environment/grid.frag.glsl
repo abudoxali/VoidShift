@@ -8,6 +8,11 @@ uniform vec3 uVoidTint;
 uniform vec3 uHorizon;
 uniform float uFogNear;
 uniform float uFogFar;
+// Light pools from the stage: xyz = world position, w = intensity; colours alongside.
+uniform vec4 uPools[3];
+uniform vec3 uPoolColors[3];
+uniform vec4 uImpact;       // x, z, crater depth 0..1, light 0..1
+uniform float uHeat;        // crack glow 0..1
 
 varying vec3 vWorld;
 varying vec2 vGrid;
@@ -60,7 +65,7 @@ void main() {
   // Survey lines are interrupted (dashed) — a measured space, not a tiled floor.
   float dashX = step(0.18, fract(g.y * 0.25 + 0.09));
   float dashZ = step(0.18, fract(g.x * 0.25 + 0.09));
-  float survey = max(mx * dashX, mz * dashZ) * 0.38 + max(tickX, tickZ) * 0.55;
+  float survey = max(mx * dashX, mz * dashZ) * 0.3 + max(tickX, tickZ) * 0.4;
 
   // ── Origin axes, drawn outward during BOOT.
   float axisExtent = uAxis * 90.0;
@@ -91,6 +96,30 @@ void main() {
   structure *= (1.0 - drop) * mix(1.0, swallow, uVoidMass) * (1.0 - inGap);
   axes *= 1.0 - inGap;
 
+  // Stage light: the floor is mostly dark and only reads where the fighters' light lands on it.
+  vec3 pool = vec3(0.0);
+  float lit = 0.0;
+  for (int i = 0; i < 3; i++) {
+    vec2 d = g - uPools[i].xz;
+    float fall = uPools[i].w / (1.0 + dot(d, d) * 0.55);
+    pool += uPoolColors[i] * fall;
+    lit += fall;
+  }
+  structure *= 0.32 + clamp(lit, 0.0, 2.5) * 0.55;
+
+  // Impact cracks: jagged radial fractures around the crater, hot then cooling.
+  vec2 rc = g - uImpact.xy;
+  float rr = length(rc);
+  float ang = atan(rc.y, rc.x) / 6.28318 + 0.5;
+  float wob = (vsNoise3(vec3(rr * 1.6, ang * 9.0, 1.7)) - 0.5) * 0.09 + (vsNoise3(vec3(rr * 5.0, ang * 21.0, 4.1)) - 0.5) * 0.025;
+  float k = (ang + wob) * 13.0;
+  float branch = vsHash11(floor(k) + 2.0);
+  float reach = uImpact.z * (1.4 + branch * 3.4);
+  float crackW = clamp(fwidth(k) * 1.5, 0.02, 0.2);
+  float fk = abs(fract(k) - 0.5);
+  float crack = smoothstep(0.5 - crackW, 0.5 - crackW * 0.3, fk) * step(0.35, rr) * (1.0 - smoothstep(reach * 0.7, reach, rr));
+  float scorch = uImpact.z * exp(-rr * rr / 2.2);
+
   vec3 lineColor = mix(uLine, uAccent, clamp(vel * 1.4 + sampled * 0.6, 0.0, 1.0));
   lineColor = mix(lineColor, uVoidTint, clamp(corrupt * 1.3, 0.0, 1.0));
 
@@ -100,6 +129,10 @@ void main() {
   color += uAxisColor * axes * (1.0 + vel);
   color += uAccent * front * 0.3;
   color += uAccent * shock * 0.06 * revealed;
+  color += pool * (0.05 + structure * 0.6) * revealed;
+  color *= 1.0 - scorch * 0.75;
+  vec3 hot = mix(vec3(0.5, 1.4, 1.8), vec3(2.6, 3.0, 3.2), uHeat);
+  color += crack * (hot * (0.12 + uHeat * 1.8) + uVoidTint * 0.2) * uImpact.z * (1.0 - smoothstep(0.0, reach, rr) * 0.6);
   // The well is darker than the world: light falls into it.
   color *= 1.0 - clamp(vWell * 0.55, 0.0, 0.85);
 

@@ -63,13 +63,14 @@ for (const vp of VIEWPORTS) {
     expect(await litFraction(page)).toBeGreaterThan(0.05)
     const stats = await page.evaluate(() => window.__VOIDSHIFT__!.stats())
     expect(stats.calls).toBeGreaterThan(5)
-    expect(stats.calls).toBeLessThan(60)
+    // Two articulated fighters (one mesh per rigid body part), structures, FX layers.
+    expect(stats.calls).toBeLessThan(250)
     expect(problems, problems.join('\n')).toEqual([])
   })
 }
 
 for (const vp of [VIEWPORTS[0], VIEWPORTS[2]]) {
-  test(`plays both combat exchanges frame-by-frame without errors (${vp.name})`, async ({ page }) => {
+  test(`plays the dash, teleport and impact frame-by-frame without errors (${vp.name})`, async ({ page }) => {
     await page.setViewportSize({ width: vp.width, height: vp.height })
     const problems = collectProblems(page)
     await boot(page)
@@ -84,26 +85,28 @@ for (const vp of [VIEWPORTS[0], VIEWPORTS[2]]) {
       }, from)
       await page.waitForFunction((end) => window.__VOIDSHIFT__!.engine.time >= end, to, { timeout: 90_000 })
     }
-    // Launch → contact → dilated crossing → exit (exchange 1), then split → pass (exchange 2).
-    await playThrough(21.55, 22.5)
+    // First exchange (dash through the phased VOID), the teleport, then contact → explosion.
+    await playThrough(6.0, 6.9)
     expect(await litFraction(page)).toBeGreaterThan(0.05)
-    await playThrough(26.85, 27.4)
+    await playThrough(13.2, 14.3)
     expect(await litFraction(page)).toBeGreaterThan(0.05)
-    expect(await page.evaluate(() => window.__VOIDSHIFT__!.engine.phase)).toBe('PHASE')
+    await playThrough(18.0, 18.9)
+    expect(await litFraction(page)).toBeGreaterThan(0.05)
+    expect(await page.evaluate(() => window.__VOIDSHIFT__!.engine.phase)).toBe('IMPACT')
     expect(problems, problems.join('\n')).toEqual([])
   })
 }
 
-test('the sequence ends on the PHASE hold', async ({ page }) => {
+test('the sequence ends on the IMPACT aftermath hold', async ({ page }) => {
   const problems = collectProblems(page)
   await boot(page)
   await page.getByRole('button', { name: 'Skip intro' }).click()
-  await expect(page.locator('.hud__label')).toHaveText('PHASE')
+  await expect(page.locator('.hud__label')).toHaveText('IMPACT')
   const end = await page.evaluate(() => {
     const e = window.__VOIDSHIFT__!.engine
     return { phase: e.phase, complete: e.isComplete }
   })
-  expect(end).toEqual({ phase: 'PHASE', complete: true })
+  expect(end).toEqual({ phase: 'IMPACT', complete: true })
   expect(problems, problems.join('\n')).toEqual([])
 })
 

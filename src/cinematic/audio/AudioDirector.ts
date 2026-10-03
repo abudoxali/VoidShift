@@ -12,6 +12,9 @@ export class AudioDirector {
   private master: GainNode | null = null
   private droneGain: GainNode | null = null
   private droneLevel = 0
+  private coreGain: GainNode | null = null
+  private coreOsc: OscillatorNode | null = null
+  private coreLevel = 0
   private noise: AudioBuffer | null = null
   private enabled = false
 
@@ -29,13 +32,21 @@ export class AudioDirector {
     this.master.gain.setTargetAtTime(0, this.ctx.currentTime, 0.08)
   }
 
-  /** Called every frame — only touches audio params when the drone level actually changes. */
+  /** Called every frame — only touches audio params when levels actually change. */
   sync(engine: CinematicEngine): void {
-    if (!this.enabled || !this.ctx || !this.droneGain) return
-    const target = engine.state.void.mass * 0.16
-    if (Math.abs(target - this.droneLevel) > 0.004) {
-      this.droneLevel = target
-      this.droneGain.gain.setTargetAtTime(target, this.ctx.currentTime, 0.12)
+    if (!this.enabled || !this.ctx || !this.droneGain || !this.coreGain || !this.coreOsc) return
+    const s = engine.state
+    const t = this.ctx.currentTime
+    const drone = s.world.voidField * s.fighters.void.reveal * 0.12
+    if (Math.abs(drone - this.droneLevel) > 0.004) {
+      this.droneLevel = drone
+      this.droneGain.gain.setTargetAtTime(drone, t, 0.12)
+    }
+    const core = s.core.charge * 0.22 + s.core.overload * 0.1
+    if (Math.abs(core - this.coreLevel) > 0.004) {
+      this.coreLevel = core
+      this.coreGain.gain.setTargetAtTime(core, t, 0.05)
+      this.coreOsc.frequency.setTargetAtTime(90 + s.core.charge * 380 + s.core.overload * 520, t, 0.08)
     }
   }
 
@@ -43,45 +54,76 @@ export class AudioDirector {
     if (!this.enabled || !this.ctx) return
     switch (cue.name) {
       case CUES.BOOT_PULSE:
-        this.blip(1320, 0.06, 0.18)
+        this.blip(880, 0.08, 0.14)
         break
-      case CUES.VELOCITY_TARGET:
-        this.blip(1760, 0.04, 0.1)
-        this.blip(2350, 0.04, 0.08, 0.07)
-        break
-      case CUES.VELOCITY_DASH:
-        this.sweep(5200, 500, 0.28, 0.35)
-        break
-      case CUES.VELOCITY_ARRIVE:
-        this.thump(90, 38, 0.35, 0.5)
+      case CUES.VELOCITY_ASSEMBLE:
+        this.sweep(700, 5200, 0.8, 0.22)
+        this.blip(1760, 0.1, 0.08, 0.6)
         break
       case CUES.VOID_OPEN:
-        this.thump(55, 22, 1.4, 0.9)
-        this.sweep(300, 60, 0.9, 0.3)
+        this.thump(55, 22, 1.2, 0.8)
+        this.glide(320, 60, 1.0, 0.2)
         break
-      case CUES.VELOCITY_LOCK:
-        this.blip(880, 0.05, 0.12)
-        this.blip(1320, 0.05, 0.12, 0.08)
-        this.blip(1760, 0.08, 0.1, 0.16)
-        break
-      case CUES.VELOCITY_LAUNCH:
+      case CUES.VELOCITY_DASH:
         this.sweep(400, 6500, 0.16, 0.4)
-        this.thump(140, 60, 0.18, 0.35)
+        this.thump(140, 60, 0.15, 0.35)
         break
       case CUES.VOID_PHASE:
-        // Not an impact: a hollow downward glide where the hit should have been.
-        this.glide(520, 70, 0.75, 0.22)
-        this.sweep(2400, 180, 0.6, 0.12)
+        this.glide(520, 70, 0.6, 0.22)
+        this.sweep(2400, 180, 0.5, 0.12)
         break
-      case CUES.VELOCITY_PASSTHROUGH:
-        this.sweep(7000, 500, 0.32, 0.3)
+      case CUES.VELOCITY_SKID:
+        this.sweep(3200, 700, 0.32, 0.25)
         break
-      case CUES.VELOCITY_RECOVER:
-        this.blip(660, 0.06, 0.1)
-        this.blip(440, 0.1, 0.1, 0.09)
+      case CUES.CLASH:
+        this.blip(2400, 0.03, 0.18)
+        this.sweep(6500, 1800, 0.09, 0.35)
+        this.thump(220, 90, 0.12, 0.4)
         break
-      case CUES.VOID_SPLIT:
-        this.sweep(120, 1100, 0.22, 0.25)
+      case CUES.VOID_COUNTER:
+        this.thump(70, 32, 0.5, 0.6)
+        this.sweep(160, 60, 0.4, 0.2)
+        break
+      case CUES.LAND:
+        this.thump(110, 45, 0.25, 0.45)
+        break
+      case CUES.VOID_GRAB:
+        this.glide(300, 140, 0.3, 0.15)
+        break
+      case CUES.ANCHOR_THROW:
+        this.sweep(1500, 7000, 0.2, 0.3)
+        this.blip(1760, 0.05, 0.1)
+        break
+      case CUES.ANCHOR_PLANT:
+        this.thump(180, 90, 0.2, 0.4)
+        this.blip(990, 0.8, 0.12)
+        this.blip(1485, 0.6, 0.06, 0.02)
+        break
+      case CUES.TELEPORT_OUT:
+        this.sweep(6000, 260, 0.12, 0.4)
+        this.blip(3200, 0.04, 0.12)
+        break
+      case CUES.TELEPORT_IN:
+        this.sweep(260, 5200, 0.26, 0.32)
+        this.blip(2200, 0.06, 0.1, 0.2)
+        break
+      case CUES.VOID_REALIZE:
+        this.glide(200, 430, 0.35, 0.16)
+        break
+      case CUES.CORE_FORM:
+        this.sweep(200, 2400, 1.6, 0.12)
+        break
+      case CUES.VOID_PHASE_FAIL:
+        for (let i = 0; i < 5; i++) this.blip(300 + i * 230, 0.025, 0.08, i * 0.04)
+        break
+      case CUES.IMPACT:
+        this.thump(62, 24, 1.8, 1.0)
+        this.sweep(5500, 70, 1.9, 0.75)
+        this.blip(4200, 0.05, 0.2)
+        break
+      case CUES.EXPLOSION:
+        this.sweep(420, 38, 3.2, 0.55)
+        this.thump(45, 20, 2.6, 0.6)
         break
     }
   }
@@ -112,6 +154,21 @@ export class AudioDirector {
       o.connect(lp)
       o.start()
     }
+
+    // Code Core voice: a filtered saw whose pitch rises with the charge.
+    const coreGain = ctx.createGain()
+    coreGain.gain.value = 0
+    const coreFilter = ctx.createBiquadFilter()
+    coreFilter.type = 'bandpass'
+    coreFilter.frequency.value = 900
+    coreFilter.Q.value = 0.8
+    const coreOsc = ctx.createOscillator()
+    coreOsc.type = 'sawtooth'
+    coreOsc.frequency.value = 90
+    coreOsc.connect(coreFilter).connect(coreGain).connect(master)
+    coreOsc.start()
+    this.coreGain = coreGain
+    this.coreOsc = coreOsc
 
     const len = ctx.sampleRate
     const noise = ctx.createBuffer(1, len, ctx.sampleRate)

@@ -1,4 +1,5 @@
 uniform vec4 uRipples[4];   // x, z, birth time, strength
+uniform vec4 uImpact;       // x, z, crater depth 0..1, light 0..1
 
 varying vec3 vWorld;
 varying vec2 vGrid;
@@ -15,8 +16,8 @@ void main() {
   float d2 = dot(toVoid, toVoid);
   float infl = R * R / (d2 + R * R);
   // Field inversion turns the well into a bulge and the pinch into a push.
-  float well = uVoidMass * 1.7 * infl * vsFieldSign();
-  p.xz += toVoid * uVoidMass * 0.38 * infl * vsFieldSign();
+  float well = uVoidMass * 0.3 * infl * vsFieldSign();
+  p.xz += toVoid * uVoidMass * 0.06 * infl * vsFieldSign();
   p.y -= well;
 
   // Shockwave ripples travelling through the lattice (shock-ready: any cue can emit one).
@@ -32,6 +33,10 @@ void main() {
     }
   }
   p.y += ripple * 0.16;
+
+  // Impact crater: a shallow bowl with a raised lip.
+  float dc = distance(vGrid, uImpact.xy);
+  p.y -= uImpact.z * (0.32 * exp(-dc * dc / 0.9) - 0.06 * exp(-pow(dc - 1.6, 2.0) / 0.12));
 
   vWell = well;
   vRipple = ripple;
