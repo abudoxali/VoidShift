@@ -6,6 +6,8 @@ interface Window {
       duration: number
       time: number
       isComplete: boolean
+      phase: string
+      layout: string
       motion: { reduced: boolean }
       cues: ReadonlyArray<{ name: string; time: number }>
       replay(): void

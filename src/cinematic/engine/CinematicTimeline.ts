@@ -1,5 +1,5 @@
 import { gsap } from 'gsap'
-import type { CinematicPhase, MotionProfile } from '../types'
+import type { CinematicPhase, MotionProfile, ViewLayout } from '../types'
 import type { CinematicState } from './CinematicState'
 
 /** A named, timestamped event emitted when the playhead crosses it (shake, ripple, audio…). */
@@ -21,6 +21,8 @@ export interface SegmentContext {
   readonly tl: gsap.core.Timeline
   readonly state: CinematicState
   readonly motion: MotionProfile
+  /** Composition layout the timeline is compiled for (selects portrait shot variants). */
+  readonly layout: ViewLayout
   /** Absolute start of this segment. */
   readonly start: number
   readonly duration: number
@@ -58,7 +60,7 @@ export class CinematicTimeline {
   readonly cues: readonly CueEvent[]
   private readonly tl: gsap.core.Timeline
 
-  constructor(definition: SequenceDefinition, state: CinematicState, motion: MotionProfile) {
+  constructor(definition: SequenceDefinition, state: CinematicState, motion: MotionProfile, layout: ViewLayout = 'landscape') {
     this.id = definition.id
     definition.initialize?.(state)
     const tl = gsap.timeline({ paused: true, defaults: { ease: 'none' } })
@@ -73,6 +75,7 @@ export class CinematicTimeline {
         tl,
         state,
         motion,
+        layout,
         start,
         duration,
         at: (local) => start + local,

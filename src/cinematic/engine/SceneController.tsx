@@ -44,6 +44,15 @@ export function SceneController({ children }: { children: ReactNode }) {
     velocityIdleOffset(engine.elapsed, s.velocity.idle * engine.motion.ambient, idle)
     uniforms.uVelocityPos.value.copy(s.velocity.position).add(idle)
     uniforms.uVelocityEnergy.value = s.velocity.energy * s.velocity.reveal
+    uniforms.uVoidPhase.value = s.void.phase
+    uniforms.uVoidFold.value = s.void.fold
+    uniforms.uVoidInversion.value = s.void.inversion
+    const axis = uniforms.uPhaseAxis.value.subVectors(s.attack.to, s.attack.from)
+    if (axis.lengthSq() < 1e-8) axis.set(1, 0, 0)
+    axis.normalize()
+    const split = uniforms.uSplitAxis.value.set(-axis.z, 0, axis.x)
+    if (split.lengthSq() < 1e-8) split.set(0, 0, 1)
+    split.normalize()
 
     if (monitor.sample(delta, tier)) {
       if (useExperience.getState().degradeQuality()) monitor.reset()

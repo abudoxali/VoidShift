@@ -9,6 +9,7 @@ export const VOID_PALETTE = {
   shell: [0.3, 0.24, 0.55],
   hot: [1.9, 0.16, 0.36],
   label: [0.78, 0.6, 1.25],
+  desync: [0.45, 1.1, 1.5],
 } as const satisfies Record<string, readonly [number, number, number]>
 
 const HEADER = GLSL.common + GLSL.field + GLSL.assemble
@@ -19,6 +20,7 @@ export function createShellMaterial(world: WorldUniforms) {
       ...fieldUniforms(world),
       uColor: { value: VOID_PALETTE.shell },
       uHot: { value: VOID_PALETTE.hot },
+      uDesyncColor: { value: VOID_PALETTE.desync },
       uReveal: { value: 0 },
       uCorruption: { value: 0 },
     },

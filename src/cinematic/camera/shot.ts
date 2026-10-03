@@ -13,7 +13,8 @@ export interface ShotOptions {
  * camera, which keeps all camera choreography timeline-driven and seekable.
  */
 export function shot(ctx: SegmentContext, name: ShotName | ShotPreset, local: number, options: ShotOptions = {}): void {
-  const preset: ShotPreset = typeof name === 'string' ? SHOTS[name] : name
+  const base: ShotPreset = typeof name === 'string' ? SHOTS[name] : name
+  const preset: ShotPreset = ctx.layout === 'portrait' && base.portrait ? { fit: 0, ...base, ...base.portrait } : base
   const { duration = 0, ease = 'power2.inOut' } = options
   const cam = ctx.state.camera
   const t = ctx.at(local)
@@ -25,6 +26,8 @@ export function shot(ctx: SegmentContext, name: ShotName | ShotPreset, local: nu
     trackWeight: preset.trackWeight ?? 0,
     lag: preset.lag,
     breathe: ctx.motion.reduced ? preset.breathe * 0.4 : preset.breathe,
+    fit: preset.fit ?? 1,
+    lead: preset.lead ?? 0,
   }
 
   ctx.tl.set(cam, { mode: preset.mode, track: preset.track ?? 'origin' }, t)

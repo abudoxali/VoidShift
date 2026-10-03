@@ -27,6 +27,10 @@ function AxisLabel({ x, z }: { x: number; z: number }) {
     l.setAnchor(anchor)
     l.setText(text)
     l.setOpacity(reveal * 0.75)
+    // Graduations near a phased VOID lose consistency.
+    const vd = engine.state.void
+    const near = 1 - smoothstep(3, 7, Math.hypot(x - vd.position.x, z - vd.position.z))
+    l.setGlitch(vd.phase * near)
   }, FRAME_STAGE.WORLD)
   return null
 }

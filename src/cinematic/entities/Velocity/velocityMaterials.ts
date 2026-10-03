@@ -11,6 +11,8 @@ export const VELOCITY_PALETTE = {
   streak: [0.45, 1.25, 1.85],
   trail: [0.3, 1.0, 1.7],
   label: [0.62, 1.35, 1.6],
+  ghost: [0.3, 0.85, 1.25],
+  vector: [0.45, 1.2, 1.55],
 } as const satisfies Record<string, readonly [number, number, number]>
 
 const HEADER = GLSL.common + GLSL.field + GLSL.assemble

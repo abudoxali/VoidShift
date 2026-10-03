@@ -1,9 +1,10 @@
 import { useFrame, useThree } from '@react-three/fiber'
 import { useEffect, useMemo, useRef } from 'react'
-import { BufferAttribute, BufferGeometry, Sphere, Vector3, type Group, type LineSegments } from 'three'
-import { formatCoord, scrambleText } from '../../effects/typography/glyphs'
+import { BufferAttribute, BufferGeometry, Euler, Quaternion, Sphere, Vector3, type Group, type LineSegments } from 'three'
+import { corruptText, formatCoord, scrambleText } from '../../effects/typography/glyphs'
 import { useGlyphLabel } from '../../effects/typography/GlyphLayer'
 import { buildParticleGeometry, setParticleCount } from '../../effects/particles/particleGeometry'
+import { Afterimages } from '../../effects/trails/Afterimages'
 import { VectorTrail } from '../../effects/trails/VectorTrail'
 import { useCinematicEngine } from '../../engine/CinematicContext'
 import { VELOCITY_HOME } from '../../engine/CinematicState'
@@ -21,6 +22,12 @@ import {
 
 /** Telemetry refreshes like an instrument (20 Hz), not every frame. */
 const READOUT_HZ = 20
+/** Afterimage capture: replicas per second of travel above the speed threshold. */
+const GHOST_RATE = 45
+const GHOST_MIN_SPEED = 18
+const GHOST_CAPACITY = 16
+const RING_A_SIGHT = new Quaternion().setFromEuler(new Euler(0, 0, Math.PI / 2))
+const RING_B_SIGHT = RING_A_SIGHT.clone()
 const MARKER_TEXT = `→ X${formatCoord(VELOCITY_HOME.x)} Y${formatCoord(VELOCITY_HOME.y)} Z${formatCoord(VELOCITY_HOME.z)}`
 
 /**
@@ -86,14 +93,29 @@ export function VelocityEntity() {
   )
   useEffect(() => () => trail.dispose(), [trail])
 
+  const ghosts = useMemo(() => new Afterimages(res.kernel, GHOST_CAPACITY, world, VELOCITY_PALETTE.ghost), [res, world])
+  useEffect(() => () => ghosts.dispose(), [ghosts])
+  useEffect(() => engine.on('seek', () => ghosts.clear()), [engine, ghosts])
+
   useEffect(() => {
     setParticleCount(res.streakGeometry, profile.particles.velocity)
   }, [res, profile.particles.velocity])
 
   const marker = useGlyphLabel({ maxChars: 28, size: 0.072, color: VELOCITY_PALETTE.label, offset: [1.2, 0] })
-  const readout = useGlyphLabel({ maxChars: 60, size: 0.064, color: VELOCITY_PALETTE.label, offset: [2.2, -1] })
+  const readout = useGlyphLabel({ maxChars: 84, size: 0.064, color: VELOCITY_PALETTE.label, offset: [2.2, -1] })
 
-  const scratch = useMemo(() => ({ anchor: new Vector3(), visible: false, lastReadout: -1, lastMarker: -1 }), [])
+  const scratch = useMemo(
+    () => ({
+      anchor: new Vector3(),
+      visible: false,
+      lastReadout: -1,
+      lastMarker: -1,
+      lastGhost: -1,
+      spin: new Quaternion(),
+      euler: new Euler(),
+    }),
+    [],
+  )
 
   useEffect(() => engine.on('seek', () => (scratch.visible = false)), [engine, scratch])
 
@@ -107,7 +129,8 @@ export function VelocityEntity() {
     const g = kernelGroup.current
     if (g) {
       g.position.copy(pos)
-      g.rotation.y = s.heading
+      g.rotation.order = 'YZX'
+      g.rotation.set(0, s.heading, s.pitch)
       g.visible = s.reveal > 0.001
       // Streamline at speed: rings collapse toward the axis.
       const stream = smoothstep(4, 30, speed)
@@ -115,8 +138,27 @@ export function VelocityEntity() {
     }
     if (kernel.current) kernel.current.rotation.x = e * 0.35
     if (inner.current) inner.current.rotation.x = -e * 0.9
-    if (ringA.current) ringA.current.rotation.set(0.42, e * 0.5, 0.25)
-    if (ringB.current) ringB.current.rotation.set(-0.7, -e * 0.28, 1.15)
+    // Targeting: the gyroscopic rings stop spinning and align into a sight along the heading.
+    const ra = ringA.current
+    if (ra) {
+      scratch.spin.setFromEuler(scratch.euler.set(0.42, e * 0.5, 0.25))
+      ra.quaternion.slerpQuaternions(scratch.spin, RING_A_SIGHT, s.focus)
+      ra.position.x = 0.55 * s.focus
+      ra.scale.setScalar(1 - 0.45 * s.focus)
+    }
+    const rb = ringB.current
+    if (rb) {
+      scratch.spin.setFromEuler(scratch.euler.set(-0.7, -e * 0.28, 1.15))
+      rb.quaternion.slerpQuaternions(scratch.spin, RING_B_SIGHT, s.focus)
+      rb.position.x = 1.85 * s.focus
+      rb.scale.setScalar(1 - 0.62 * s.focus)
+    }
+
+    // Afterimages: replicas left behind at impossible speed.
+    if (s.ghosts > 0 && speed > GHOST_MIN_SPEED && engine.elapsed - scratch.lastGhost >= 1 / GHOST_RATE) {
+      scratch.lastGhost = engine.elapsed
+      ghosts.capture(pos, s.heading, s.pitch, engine.elapsed)
+    }
 
     const lu = res.lineMaterial.uniforms
     lu.uAssemble.value = s.assemble
@@ -162,14 +204,20 @@ export function VelocityEntity() {
     if (r) {
       scratch.anchor.set(pos.x, pos.y + 0.62, pos.z)
       r.setAnchor(scratch.anchor)
-      r.setOpacity(s.readout * (1 - s.interference * 0.35))
+      // While a vector is locked the instrument shows the vector (AttackVector), not the position.
+      const atk = engine.state.attack
+      r.setOpacity(s.readout * (1 - s.interference * 0.35) * (1 - atk.lock * atk.visible * 0.9))
       r.setGlitch(s.interference)
       // Keyed on both clocks so a seek while paused also refreshes the instrument.
       const tick = Math.floor((engine.elapsed + engine.time) * READOUT_HZ)
       if (s.readout > 0 && tick !== scratch.lastReadout) {
         scratch.lastReadout = tick
+        // Inside a phased VOID its own position stops resolving consistently.
+        const vd = engine.state.void
+        const desync = vd.phase * smoothstep(2.2, 0.6, pos.distanceTo(vd.position))
+        const coords = `X${formatCoord(pos.x)} Y${formatCoord(pos.y)} Z${formatCoord(pos.z)}`
         const text =
-          `VELOCITY\nX${formatCoord(pos.x)} Y${formatCoord(pos.y)} Z${formatCoord(pos.z)}\n` +
+          `${desync > 0.3 ? 'VELOCITY · DESYNC' : 'VELOCITY'}\n${corruptText(coords, desync * 0.6, 23, tick)}\n` +
           `|V| ${formatCoord(speed, 3, 1).slice(1)}  ΔT ${engine.dt.toFixed(3)}`
         r.setText(scrambleText(text, s.readout * 1.15, 9, tick))
       }
@@ -189,6 +237,7 @@ export function VelocityEntity() {
       </group>
       <lineSegments geometry={res.streakGeometry} material={res.streakMaterial} frustumCulled={false} dispose={null} />
       <primitive object={trail.mesh} dispose={null} />
+      <primitive object={ghosts.mesh} dispose={null} />
       <lineSegments
         geometry={res.target}
         material={res.targetMaterial}

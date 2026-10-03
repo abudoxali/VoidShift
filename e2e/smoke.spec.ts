@@ -42,7 +42,7 @@ const VIEWPORTS = [
 ]
 
 for (const vp of VIEWPORTS) {
-  test(`renders the foundation sequence without errors (${vp.name})`, async ({ page }) => {
+  test(`renders the final hold without errors (${vp.name})`, async ({ page }) => {
     await page.setViewportSize({ width: vp.width, height: vp.height })
     const problems = collectProblems(page)
     await boot(page)
@@ -67,6 +67,45 @@ for (const vp of VIEWPORTS) {
     expect(problems, problems.join('\n')).toEqual([])
   })
 }
+
+for (const vp of [VIEWPORTS[0], VIEWPORTS[2]]) {
+  test(`plays both combat exchanges frame-by-frame without errors (${vp.name})`, async ({ page }) => {
+    await page.setViewportSize({ width: vp.width, height: vp.height })
+    const problems = collectProblems(page)
+    await boot(page)
+    expect(await page.evaluate(() => window.__VOIDSHIFT__!.engine.layout)).toBe(vp.width < vp.height ? 'portrait' : 'landscape')
+
+    const playThrough = async (from: number, to: number) => {
+      await page.evaluate((t) => {
+        const d = window.__VOIDSHIFT__!
+        d.seek(t)
+        d.setFixedDelta(1 / 60)
+        d.play()
+      }, from)
+      await page.waitForFunction((end) => window.__VOIDSHIFT__!.engine.time >= end, to, { timeout: 90_000 })
+    }
+    // Launch → contact → dilated crossing → exit (exchange 1), then split → pass (exchange 2).
+    await playThrough(21.55, 22.5)
+    expect(await litFraction(page)).toBeGreaterThan(0.05)
+    await playThrough(26.85, 27.4)
+    expect(await litFraction(page)).toBeGreaterThan(0.05)
+    expect(await page.evaluate(() => window.__VOIDSHIFT__!.engine.phase)).toBe('PHASE')
+    expect(problems, problems.join('\n')).toEqual([])
+  })
+}
+
+test('the sequence ends on the PHASE hold', async ({ page }) => {
+  const problems = collectProblems(page)
+  await boot(page)
+  await page.getByRole('button', { name: 'Skip intro' }).click()
+  await expect(page.locator('.hud__label')).toHaveText('PHASE')
+  const end = await page.evaluate(() => {
+    const e = window.__VOIDSHIFT__!.engine
+    return { phase: e.phase, complete: e.isComplete }
+  })
+  expect(end).toEqual({ phase: 'PHASE', complete: true })
+  expect(problems, problems.join('\n')).toEqual([])
+})
 
 test('skip and replay intro controls drive the engine', async ({ page }) => {
   const problems = collectProblems(page)
@@ -119,6 +158,11 @@ test('quality switches and replays do not leak GPU resources', async ({ page }) 
   }
   for (let i = 0; i < 3; i++) {
     await page.evaluate(() => window.__VOIDSHIFT__!.engine.replay())
+    // Pass through the combat beats (phase, fold, afterimages, attack vector) on every replay.
+    for (const t of [21.7, 22.1, 27.0]) {
+      await page.evaluate((x) => window.__VOIDSHIFT__!.seek(x), t)
+      await page.waitForTimeout(300)
+    }
     await page.evaluate(() => window.__VOIDSHIFT__!.seek(window.__VOIDSHIFT__!.engine.duration))
   }
   await settle()

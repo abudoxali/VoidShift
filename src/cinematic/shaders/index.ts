@@ -22,6 +22,11 @@ export function createWorldUniforms() {
     uVoidRadius: { value: 0.6 },
     uVelocityPos: { value: new Vector3() },
     uVelocityEnergy: { value: 0 },
+    uVoidPhase: { value: 0 },
+    uVoidFold: { value: 0 },
+    uVoidInversion: { value: 0 },
+    uPhaseAxis: { value: new Vector3(1, 0, 0) },
+    uSplitAxis: { value: new Vector3(0, 0, 1) },
     /** Converts world-space point size to pixels: bufferHeight / (2·tan(fov/2)). */
     uPointScale: { value: 600 },
   }
@@ -39,5 +44,10 @@ export function fieldUniforms(world: WorldUniforms) {
     uVoidRadius: world.uVoidRadius,
     uVelocityPos: world.uVelocityPos,
     uVelocityEnergy: world.uVelocityEnergy,
+    uVoidPhase: world.uVoidPhase,
+    uVoidFold: world.uVoidFold,
+    uVoidInversion: world.uVoidInversion,
+    uPhaseAxis: world.uPhaseAxis,
+    uSplitAxis: world.uSplitAxis,
   }
 }

@@ -8,6 +8,8 @@ const PHASE_DESCRIPTIONS: Partial<Record<string, string>> = {
   BOOT: 'A single coordinate appears in darkness and draws the axes of a new space.',
   REVEAL: 'A computational grid resolves outward from the origin.',
   SPAWN: 'Velocity arrives at its published coordinate; then space bends and the Void tears open.',
+  ENGAGE: 'Velocity locks a vector onto the Void, winds up and launches at impossible speed.',
+  PHASE: 'The Void leaves solid space: both attacks pass straight through it. Ordinary vectors cannot make contact.',
 }
 
 /**

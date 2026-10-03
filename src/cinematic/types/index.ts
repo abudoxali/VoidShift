@@ -32,6 +32,17 @@ export type EntityId = 'velocity' | 'void' | 'origin'
 
 export type QualityTier = 'ULTRA' | 'HIGH' | 'LITE'
 
+/**
+ * Composition layout. Sequences are compiled per layout so portrait screens get
+ * purpose-built shots (vertical composition) instead of a widened landscape frame.
+ */
+export type ViewLayout = 'landscape' | 'portrait'
+
+/** Below this aspect ratio the portrait shot variants are used. */
+export const PORTRAIT_BELOW_ASPECT = 0.85
+
+export const layoutForAspect = (aspect: number): ViewLayout => (aspect < PORTRAIT_BELOW_ASPECT ? 'portrait' : 'landscape')
+
 export interface MotionProfile {
   /** True when the viewer asked for reduced motion (system setting or in-app toggle). */
   reduced: boolean

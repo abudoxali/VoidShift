@@ -2,6 +2,7 @@ import { CinematicCameraRig } from '../camera/CinematicCameraRig'
 import { PostPipeline } from '../effects/post/PostPipeline'
 import { GlyphLayer } from '../effects/typography/GlyphLayer'
 import { SceneController } from '../engine/SceneController'
+import { AttackVector } from '../entities/Velocity/AttackVector'
 import { VelocityEntity } from '../entities/Velocity/VelocityEntity'
 import { VoidEntity } from '../entities/Void/VoidEntity'
 import { Atmosphere } from '../environment/Atmosphere'
@@ -23,6 +24,7 @@ export function FoundationScene() {
       <GlyphLayer>
         <Coordinates />
         <VelocityEntity />
+        <AttackVector />
         <VoidEntity />
       </GlyphLayer>
       <PostPipeline />

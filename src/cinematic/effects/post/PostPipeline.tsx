@@ -53,6 +53,10 @@ export function PostPipeline() {
     () => ({
       ndc: new Vector3(),
       view: new Vector3(),
+      probe: new Vector3(),
+      attackAxis: new Vector3(),
+      axis2d: new Vector2(1, 0),
+      split2d: new Vector2(0, 1),
       lens: { center: new Vector2(), horizon: 0, mass: 0, reveal: 0, corruption: 0, onScreen: false } as LensParams,
       shockBirth: -1,
       grade: { gate: 0, aspect: 1, flash: 0, exposure: 1, grain: true },
@@ -87,6 +91,16 @@ export function PostPipeline() {
     lens.reveal = s.void.reveal
     lens.corruption = s.void.corruption * engine.motion.ambient
     distortion.setLens(lens, engine.elapsed)
+    // Attack line in screen space: project the core and a point one unit along the axis.
+    const aspect = size.width / Math.max(size.height, 1)
+    const cx = scratch.ndc.x
+    const cy = scratch.ndc.y
+    scratch.probe.copy(s.void.position).add(scratch.attackAxis.subVectors(s.attack.to, s.attack.from).normalize()).project(camera)
+    scratch.axis2d.set((scratch.probe.x - cx) * aspect, scratch.probe.y - cy)
+    if (scratch.axis2d.lengthSq() < 1e-10) scratch.axis2d.set(1, 0)
+    scratch.axis2d.normalize()
+    scratch.split2d.set(-scratch.axis2d.y, scratch.axis2d.x)
+    distortion.setPhase(s.void.phase, s.void.fold, s.void.desync, scratch.axis2d, scratch.split2d)
     distortion.setShock(lens.center.x, lens.center.y, scratch.shockBirth < 0 ? -1 : engine.elapsed - scratch.shockBirth, -0.9 * engine.motion.flash)
 
     bloom.intensity = BLOOM_INTENSITY * s.fx.bloom

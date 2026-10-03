@@ -49,7 +49,7 @@ export function CinematicCameraRig() {
 
   useFrame(() => {
     rig.shakeScale = engine.motion.shake
-    rig.update(engine.state.camera, resolve, size.width / Math.max(size.height, 1), engine.elapsed, engine.dt)
+    rig.update(engine.state.camera, resolve, size.width / Math.max(size.height, 1), engine.elapsed, engine.dt, engine.derived.velocityMotion)
     rig.apply(camera)
     uniforms.uPointScale.value = (size.height * dpr) / (2 * Math.tan(MathUtils.degToRad(camera.fov) / 2))
   }, FRAME_STAGE.CAMERA)

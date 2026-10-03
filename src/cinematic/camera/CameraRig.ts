@@ -1,5 +1,5 @@
 import { Vector3, type PerspectiveCamera } from 'three'
-import { damp } from '../../utils/math'
+import { damp, lerp, smoothstep } from '../../utils/math'
 import type { CinematicState } from '../engine/CinematicState'
 import { computeFraming, type Framing } from './framing'
 
@@ -55,11 +55,17 @@ export class CameraRig {
     aspect: number,
     elapsed: number,
     dt: number,
+    trackMotion?: Vector3,
   ): void {
     const tracked = resolveEntity(cam.track)
 
     // 1. Choreographed intention, interpreted by mode.
     this.desiredTarget.copy(cam.target).lerp(tracked, cam.trackWeight)
+    // Directional lead: look ahead of a fast-moving subject (CHASE language).
+    if (cam.lead > 0 && trackMotion) {
+      const speed = trackMotion.length()
+      if (speed > 1e-3) this.desiredTarget.addScaledVector(trackMotion, (cam.lead * smoothstep(2, 25, speed)) / speed)
+    }
     if (cam.mode === 'CHASE') {
       this.desiredPos.copy(tracked).add(cam.position)
     } else {
@@ -80,8 +86,11 @@ export class CameraRig {
       this.desiredTarget.y += wobble(elapsed * 0.23, 5) * 0.025 * b
     }
 
-    // 2. Responsive framing: keep horizontal coverage on narrow/portrait viewports.
+    // 2. Responsive framing: keep horizontal coverage on narrow viewports. Shots authored
+    //    for portrait set fit = 0 and are used as composed.
     computeFraming(aspect, cam.fov, this.framing)
+    this.framing.fov = lerp(cam.fov, this.framing.fov, cam.fit)
+    this.framing.distance = lerp(1, this.framing.distance, cam.fit)
     if (this.framing.distance !== 1) {
       this.offset.subVectors(this.desiredPos, this.desiredTarget).multiplyScalar(this.framing.distance)
       this.desiredPos.copy(this.desiredTarget).add(this.offset)

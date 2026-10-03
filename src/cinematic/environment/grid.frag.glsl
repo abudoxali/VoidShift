@@ -14,31 +14,49 @@ varying vec2 vGrid;
 varying float vWell;
 varying float vRipple;
 
-// Anti-aliased line at integer values of `c`, `px` pixels wide.
-float vsLine(float c, float px) {
-  float fw = max(fwidth(c), 1e-4);
-  float d = abs(fract(c + 0.5) - 0.5) / fw;
+// Anti-aliased line at integer values of `c`, `px` pixels wide. `fw` is the screen-space
+// derivative of `c`, taken from the UNWARPED coordinate so that phase discontinuities stay
+// crisp instead of producing derivative spikes.
+float vsLine(float c, float px, float fw) {
+  float d = abs(fract(c + 0.5) - 0.5) / max(fw, 1e-4);
   return 1.0 - smoothstep(px * 0.5, px * 0.5 + 1.0, d);
 }
 
 void main() {
+  vec2 gFw = max(fwidth(vGrid), vec2(1e-4));
+  float fw = max(gFw.x, gFw.y);
   vec2 g = vGrid;
   float r = length(g);
 
+  // ── PHASE: local space stops being continuous around the VOID.
+  vec2 rel = g - uVoidPos.xz;
+  float dv0 = length(rel);
+  float region = 1.0 - smoothstep(uVoidRadius * 4.0, uVoidRadius * 10.0, dv0);
+  // Fold: space parts along the attack line; an empty seam opens between the two halves.
+  vec2 splitDir = normalize(uSplitAxis.xz + vec2(1e-5));
+  float across = dot(rel, splitDir);
+  float gap = uVoidFold * uVoidRadius * 1.6 * region;
+  float inGap = 1.0 - step(gap, abs(across));
+  g += splitDir * sign(across) * gap;
+  float seam = uVoidFold * region * exp(-abs(abs(across) - gap) / (fw * 1.5)) * (1.0 - inGap);
+  // Phase: concentric shells of the lattice rotate by contradictory angles.
+  float ring = floor(dv0 / (uVoidRadius * 1.7));
+  float twist = (vsHash11(ring * 7.31 + 3.0) - 0.5) * 2.4 * uVoidPhase * region;
+  g = uVoidPos.xz + vsRot(twist) * (g - uVoidPos.xz);
+
   // ── Lattice: measurement points at every unit intersection.
   vec2 cell = fract(g + 0.5) - 0.5;
-  float fw = max(fwidth(g.x), 1e-4);
   float dotR = max(0.022, fw * 0.9);
   float lattice = 1.0 - smoothstep(dotR * 0.6, dotR, length(cell));
   lattice *= 0.55;
 
   // ── Major survey lines every 4 units, carrying ruler ticks every 0.5.
   vec2 major = g / 4.0;
-  float mx = vsLine(major.x, 0.9);
-  float mz = vsLine(major.y, 0.9);
+  float mx = vsLine(major.x, 0.9, fw * 0.25);
+  float mz = vsLine(major.y, 0.9, fw * 0.25);
   vec2 nearMajor = abs(fract(major + 0.5) - 0.5) * 4.0;
-  float tickX = vsLine(g.y * 2.0, 1.0) * (1.0 - smoothstep(0.05, 0.09, nearMajor.x));
-  float tickZ = vsLine(g.x * 2.0, 1.0) * (1.0 - smoothstep(0.05, 0.09, nearMajor.y));
+  float tickX = vsLine(g.y * 2.0, 1.0, fw * 2.0) * (1.0 - smoothstep(0.05, 0.09, nearMajor.x));
+  float tickZ = vsLine(g.x * 2.0, 1.0, fw * 2.0) * (1.0 - smoothstep(0.05, 0.09, nearMajor.y));
   // Survey lines are interrupted (dashed) — a measured space, not a tiled floor.
   float dashX = step(0.18, fract(g.y * 0.25 + 0.09));
   float dashZ = step(0.18, fract(g.x * 0.25 + 0.09));
@@ -46,9 +64,8 @@ void main() {
 
   // ── Origin axes, drawn outward during BOOT.
   float axisExtent = uAxis * 90.0;
-  vec2 fwg = max(fwidth(g), vec2(1e-4));
-  float ax = (1.0 - smoothstep(0.65, 1.65, abs(g.y) / fwg.y)) * step(abs(g.x), axisExtent);
-  float az = (1.0 - smoothstep(0.65, 1.65, abs(g.x) / fwg.x)) * step(abs(g.y), axisExtent);
+  float ax = (1.0 - smoothstep(0.65, 1.65, abs(g.y) / gFw.y)) * step(abs(g.x), axisExtent);
+  float az = (1.0 - smoothstep(0.65, 1.65, abs(g.x) / gFw.x)) * step(abs(g.y), axisExtent);
   float axes = max(ax, az) * uAxis;
 
   // ── Computational shimmer: sparse cells being re-sampled.
@@ -71,13 +88,15 @@ void main() {
 
   float shock = abs(vRipple);
   float structure = (lattice * (1.0 + vel * 3.0 + sampled * 4.0 + shock * 6.0) + survey * (1.0 + vel * 1.5 + shock * 3.0)) * revealed;
-  structure *= (1.0 - drop) * mix(1.0, swallow, uVoidMass);
+  structure *= (1.0 - drop) * mix(1.0, swallow, uVoidMass) * (1.0 - inGap);
+  axes *= 1.0 - inGap;
 
   vec3 lineColor = mix(uLine, uAccent, clamp(vel * 1.4 + sampled * 0.6, 0.0, 1.0));
   lineColor = mix(lineColor, uVoidTint, clamp(corrupt * 1.3, 0.0, 1.0));
 
-  vec3 color = uGround * (0.6 + 0.4 * revealed);
+  vec3 color = uGround * (0.6 + 0.4 * revealed) * (1.0 - inGap * 0.8);
   color += lineColor * structure;
+  color += uVoidTint * seam * 0.9 * revealed;
   color += uAxisColor * axes * (1.0 + vel);
   color += uAccent * front * 0.3;
   color += uAccent * shock * 0.06 * revealed;

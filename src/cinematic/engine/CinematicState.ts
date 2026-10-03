@@ -23,6 +23,8 @@ export interface CinematicState {
     position: Vector3
     /** Yaw (radians) the vector kernel points toward. */
     heading: number
+    /** Pitch (radians) of the kernel's nose (dives and climbs). */
+    pitch: number
     /** 0..1 global visibility. */
     reveal: number
     /** 0..1 reconstruction of its geometry from scattered fragments. */
@@ -37,6 +39,10 @@ export interface CinematicState {
     readout: number
     /** 0..1 signal interference applied to the readout (from VOID). */
     interference: number
+    /** 0..1 targeting: the precision rings stop spinning and align into a sight along the heading. */
+    focus: number
+    /** 0..1 enables afterimage capture (short-lived geometric replicas at high speed). */
+    ghosts: number
   }
   void: {
     position: Vector3
@@ -50,6 +56,35 @@ export interface CinematicState {
     corruption: number
     /** 0..1 visibility of its (permanently unresolved) coordinate readout. */
     readout: number
+    /**
+     * 0..1 PHASE mode: VOID stops behaving like solid space. Its interior turns from absence
+     * into folded, re-sampled space; shell fragments jump to mirrored (contradictory)
+     * positions across the attack plane; its coordinates stop resolving.
+     */
+    phase: number
+    /** 0..1 spatial split: space parts along the attack line (shell halves, horizon, grid seam). */
+    fold: number
+    /** 0..1 field inversion: gravity pushes outward (grid bulges, data is expelled). */
+    inversion: number
+    /** 0..1 directional desynchronisation of the image along the attack vector (chroma). */
+    desync: number
+  }
+  /** The current attack vector: prediction geometry, lock data and outcome. */
+  attack: {
+    /** Launch point of the predicted trajectory. */
+    from: Vector3
+    /** End of the predicted trajectory (beyond the intercept). */
+    to: Vector3
+    /** 0..1 draw progress of the trajectory geometry. */
+    draw: number
+    /** 0..1 visibility of trajectory + intercept marker. */
+    visible: number
+    /** 0..1 decode of the lock telemetry. */
+    lock: number
+    /** 0..1 reveal of the outcome ("COLLISION FALSE"). */
+    result: number
+    /** Exchange number (0 = none, 1 = first attack, 2 = second). */
+    index: number
   }
   camera: {
     mode: CameraMode
@@ -64,6 +99,10 @@ export interface CinematicState {
     lag: number
     /** Handheld/breathing drift amplitude. */
     breathe: number
+    /** 0..1 how much 16:9 fit-width adaptation applies (portrait-authored shots use 0). */
+    fit: number
+    /** Look-ahead (world units) along the tracked entity's motion (CHASE). */
+    lead: number
   }
   fx: {
     /** 0..1 how far the cinematic letterbox gate has opened. */
@@ -86,6 +125,7 @@ export function createCinematicState(): CinematicState {
     velocity: {
       position: new Vector3(-30, 2.2, -8),
       heading: 0,
+      pitch: 0,
       reveal: 0,
       assemble: 0,
       energy: 0,
@@ -93,6 +133,8 @@ export function createCinematicState(): CinematicState {
       marker: 0,
       readout: 0,
       interference: 0,
+      focus: 0,
+      ghosts: 0,
     },
     void: {
       position: VOID_HOME.clone(),
@@ -101,6 +143,19 @@ export function createCinematicState(): CinematicState {
       reveal: 0,
       corruption: 0,
       readout: 0,
+      phase: 0,
+      fold: 0,
+      inversion: 0,
+      desync: 0,
+    },
+    attack: {
+      from: VELOCITY_HOME.clone(),
+      to: VOID_HOME.clone(),
+      draw: 0,
+      visible: 0,
+      lock: 0,
+      result: 0,
+      index: 0,
     },
     camera: {
       mode: 'FREEZE',
@@ -112,27 +167,25 @@ export function createCinematicState(): CinematicState {
       trackWeight: 0,
       lag: 0,
       breathe: 0,
+      fit: 1,
+      lead: 0,
     },
     // The gate starts as a thin slit: the first frames are an eye opening on the origin.
     fx: { gate: 0.07, flash: 0, exposure: 1, bloom: 1 },
   }
 }
 
-/** Restores every field of `state` to its initial value in place (references are preserved). */
+/** Restores every field of `state` to its initial value in place (object references are preserved). */
 export function resetCinematicState(state: CinematicState): void {
-  const fresh = createCinematicState()
-  Object.assign(state.world, fresh.world)
-  Object.assign(state.fx, fresh.fx)
-  const { position: vp, ...velocity } = fresh.velocity
-  Object.assign(state.velocity, velocity)
-  state.velocity.position.copy(vp)
-  const { position: dp, ...voidRest } = fresh.void
-  Object.assign(state.void, voidRest)
-  state.void.position.copy(dp)
-  const { position: cp, target: ct, ...camera } = fresh.camera
-  Object.assign(state.camera, camera)
-  state.camera.position.copy(cp)
-  state.camera.target.copy(ct)
+  const fresh = createCinematicState() as unknown as Record<string, Record<string, unknown>>
+  const target = state as unknown as Record<string, Record<string, unknown>>
+  for (const group of Object.keys(fresh)) {
+    for (const [key, value] of Object.entries(fresh[group])) {
+      const current = target[group][key]
+      if (value instanceof Vector3 && current instanceof Vector3) current.copy(value)
+      else target[group][key] = value
+    }
+  }
 }
 
 /** Deep copy of the numeric content of a state (used by tests and debug snapshots). */

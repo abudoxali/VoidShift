@@ -1,5 +1,5 @@
 import { Vector3 } from 'three'
-import { FULL_MOTION, type CinematicPhase, type MotionProfile } from '../types'
+import { FULL_MOTION, type CinematicPhase, type MotionProfile, type ViewLayout } from '../types'
 import { createCinematicState, type CinematicState } from './CinematicState'
 import { CinematicTimeline, type CueEvent, type SequenceDefinition } from './CinematicTimeline'
 
@@ -27,6 +27,7 @@ export interface EngineDerived {
 export interface CinematicEngineOptions {
   sequence: SequenceDefinition
   motion?: MotionProfile
+  layout?: ViewLayout
   autoplay?: boolean
 }
 
@@ -58,6 +59,7 @@ export class CinematicEngine {
   private timeline: CinematicTimeline
   private readonly sequence: SequenceDefinition
   private motionProfile: MotionProfile
+  private viewLayout: ViewLayout
   private currentPhase: CinematicPhase
   private completed = false
   /** Cues with time > cueCursor are still pending. -1 lets cues placed at t = 0 fire. */
@@ -73,10 +75,11 @@ export class CinematicEngine {
     frame: new Set(),
   }
 
-  constructor({ sequence, motion = FULL_MOTION, autoplay = true }: CinematicEngineOptions) {
+  constructor({ sequence, motion = FULL_MOTION, layout = 'landscape', autoplay = true }: CinematicEngineOptions) {
     this.sequence = sequence
     this.motionProfile = motion
-    this.timeline = new CinematicTimeline(sequence, this.state, motion)
+    this.viewLayout = layout
+    this.timeline = new CinematicTimeline(sequence, this.state, motion, layout)
     this.currentPhase = this.timeline.phaseAt(0)
     this.playing = autoplay
     this.prevVelocityPos.copy(this.state.velocity.position)
@@ -92,6 +95,10 @@ export class CinematicEngine {
 
   get motion(): MotionProfile {
     return this.motionProfile
+  }
+
+  get layout(): ViewLayout {
+    return this.viewLayout
   }
 
   get isComplete(): boolean {
@@ -183,10 +190,22 @@ export class CinematicEngine {
    */
   setMotion(profile: MotionProfile): void {
     if (profile === this.motionProfile) return
+    this.motionProfile = profile
+    this.rebuild()
+  }
+
+  /** Switch composition layout (orientation change). Rebuilt like `setMotion`. */
+  setLayout(layout: ViewLayout): void {
+    if (layout === this.viewLayout) return
+    this.viewLayout = layout
+    this.rebuild()
+  }
+
+  /** Recompile the timeline for the current profile/layout, preserving relative progress. */
+  private rebuild(): void {
     const progress = this.timeline.duration > 0 ? this.time / this.timeline.duration : 0
     this.timeline.dispose()
-    this.motionProfile = profile
-    this.timeline = new CinematicTimeline(this.sequence, this.state, profile)
+    this.timeline = new CinematicTimeline(this.sequence, this.state, this.motionProfile, this.viewLayout)
     this.seek(progress * this.timeline.duration)
   }
 

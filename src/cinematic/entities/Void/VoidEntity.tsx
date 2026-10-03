@@ -81,14 +81,16 @@ export function VoidEntity() {
       scratch.anchor.set(s.position.x, s.position.y + R * 1.9, s.position.z)
       l.setAnchor(scratch.anchor)
       l.setOpacity(s.readout * 0.85)
-      l.setGlitch(0.25 + s.corruption * 0.5)
+      l.setGlitch(Math.min(1, 0.25 + s.corruption * 0.5 + s.phase * 0.3))
       // Its coordinates are measurable for a frame at a time, then corrupt again.
       const tick = Math.floor((engine.elapsed + engine.time) * 12 * Math.max(engine.motion.ambient, 0.4))
       if (s.readout > 0 && tick !== scratch.lastTick) {
         scratch.lastTick = tick
         const p = s.position
         const coords = `X${formatCoord(p.x)} Y${formatCoord(p.y)} Z${formatCoord(p.z)}`
-        l.setText(`VOID\n${corruptText(coords, 0.45 + s.corruption * 0.4, 17, tick)}`)
+        // Phased, it no longer claims a position at all.
+        const body = s.phase > 0.55 ? (s.fold > 0.4 ? 'SPACE\nDESYNC' : 'POSITION\nUNRESOLVED') : corruptText(coords, 0.45 + s.corruption * 0.4, 17, tick)
+        l.setText(`VOID\n${s.phase > 0.55 ? corruptText(body, 0.12 * s.phase, 19, tick) : body}`)
       }
     }
   }, FRAME_STAGE.WORLD)

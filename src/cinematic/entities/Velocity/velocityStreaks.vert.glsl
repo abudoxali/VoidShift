@@ -31,13 +31,13 @@ void main() {
   vec3 world = uEntity + local;
 
   // Kinetic streak: the tail is left behind along -velocity.
-  float len = min(speed * (0.008 + aSeed.z * 0.03), 3.2);
+  float len = min(speed * (0.006 + aSeed.z * 0.022), 1.8);
   vec3 tangent = normalize(vec3(-local.z, 0.0, local.x) + 1e-4);
   vec3 trail = mix(tangent * (0.025 + aSeed.z * 0.05), dir * len, moving);
   world -= trail * aVertex;
 
   float twinkle = 0.55 + 0.45 * sin(uTime * (2.0 + aSeed.x * 5.0) + aSeed.w * 30.0);
-  vAlpha = uReveal * mix(0.25, 1.0, a) * mix(twinkle, 0.55, moving) * (0.45 + uEnergy * 0.8);
+  vAlpha = uReveal * mix(0.25, 1.0, a) * mix(twinkle, 0.42, moving) * (0.45 + uEnergy * 0.8);
   vTail = aVertex;
   gl_Position = projectionMatrix * viewMatrix * vec4(world, 1.0);
 }
