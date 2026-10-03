@@ -20,7 +20,8 @@ import { SkeletonLines } from '../SkeletonLines'
 import { driveFighter, useFighterRigObject } from '../useFighterRig'
 import { AERON_COLORS, AERON_PROPORTIONS, buildAeronBody } from './buildAeronBody'
 
-const TRAILED: JointName[] = ['handR', 'handL', 'footL', 'footR']
+// The striking hand and the kicking foot only: more trails would bury the silhouette.
+const TRAILED: JointName[] = ['handR', 'footL']
 const GHOST_RATE = 30
 const ACCENT = new Color(...AERON_COLORS.accent)
 const EYE = new Color(...AERON_COLORS.eye)
@@ -170,6 +171,7 @@ export function AeronFighter() {
       if (!scratch.visible && show) t.reset(scratch.p)
       else t.push(scratch.p)
       t.setOpacity(trailOpacity)
+      t.mesh.visible = trailOpacity > 0.002
       t.setResolution(size.width * dpr, size.height * dpr)
     })
     scratch.visible = show

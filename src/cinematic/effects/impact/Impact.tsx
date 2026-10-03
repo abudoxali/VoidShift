@@ -166,11 +166,12 @@ export function Impact() {
     // The dome waits out the impact frame (an inverted bright disc would read as a hole).
     const da = Math.max(0, age - 0.067)
     const grow = 1 - Math.exp(-da * 12)
-    parts.dome.visible = age > 0.067
     parts.dome.position.copy(c)
     parts.dome.scale.setScalar(0.3 + grow * 3.0)
     parts.domeMat.uniforms.uIntensity.value = im.light * Math.exp(-da * 6) * 0.7
-    parts.coreFlash.visible = age > 0.067
+    // Spent layers stop drawing.
+    parts.dome.visible = age > 0.067 && parts.domeMat.uniforms.uIntensity.value > 0.002
+    parts.coreFlash.visible = age > 0.067 && da < 1 / 6
     parts.coreFlash.position.copy(c)
     parts.coreFlash.scale.setScalar(0.15 + grow * 0.6)
     ;(parts.coreFlash.material as MeshBasicMaterial).opacity = Math.max(0, 1 - da * 6)
@@ -179,10 +180,12 @@ export function Impact() {
     parts.shockRing.position.set(c.x, 0.03, c.z)
     parts.shockRing.scale.setScalar(0.2 + im.shock * 11)
     parts.ringMat.opacity = im.shock > 0 && im.shock < 1 ? Math.pow(1 - im.shock, 1.4) : 0
+    parts.shockRing.visible = parts.ringMat.opacity > 0
     const s2 = Math.min(1, Math.max(0, (age - 0.08) / 0.9))
     parts.shockRing2.position.set(c.x, 0.035, c.z)
     parts.shockRing2.scale.setScalar(0.2 + (1 - Math.pow(1 - s2, 3)) * 6.5)
     parts.ring2Mat.opacity = s2 > 0 && s2 < 1 ? (1 - s2) * 0.8 : 0
+    parts.shockRing2.visible = parts.ring2Mat.opacity > 0
 
     // Shards.
     const vd = engine.state.fighters.void
