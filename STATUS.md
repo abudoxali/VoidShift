@@ -43,6 +43,7 @@ The panel offers:
 - Readouts for time, scene and shot.
 - An FX full/off toggle.
 - Camera debug (thirds, plus shot name, position, target and FOV).
+- A collapse button: the panel folds to a one-line pill (time and shot) so it never covers the frame on phones.
 - Skeleton debug (energy skeleton lines).
 - Slow motion ×0.25.
 - A quality tier selector.
@@ -109,6 +110,12 @@ Contact is tested geometrically on the real posed rigs: the punch passes through
 - Limb trails are limited to the striking hand and the kicking foot, and only at real speed, so the silhouette stays readable.
 - Each fighter carries an energy light at the chest. The Code Core and the impact carry their own lights.
 - The atmosphere steps back during the first attack and close combat, and returns at the strategy beat.
+- **Impact** (live review fix): the grade flash was washing the whole frame grey at impact +0.2 s.
+  - The flash is now a short 0.12 accent.
+  - Radial rays begin only after the cut to the wide shot, at low strength.
+  - The contact dome and core flash are smaller.
+  - There is less debris.
+  - In both impact shots the bodies stay readable: NOX's recoil and eyes in the hero shot, his drop to one knee in the wide.
 
 ## Draw Calls
 
@@ -117,7 +124,7 @@ Measured on the deployed build with `renderer.info` during frame-stepped playbac
 | Tier | Range | Peak |
 |---|---|---|
 | ULTRA 1280×720 | 27–49 | impact |
-| LITE | ~39–49 | — |
+| LITE 1280×720 | 23–45 | impact |
 
 This pass brought ULTRA down from 35–61 by:
 
@@ -158,6 +165,9 @@ Fighters render in ≤ 6 (AERON) and ≤ 8 (NOX) draws (tested). No FPS figure i
 - Cloth is a light Verlet ribbon system: there is no self-collision, and the cloak can clip on extreme poses.
 - The teleport reconstruction and impact light are short. On a slow software renderer, single frames can look harsher than at 60 fps.
 - Hands at wide-shot distance read mainly by silhouette.
+- In the phone-portrait impact wide shot, the rays and floor cracks are still the brightest elements. The fighters are readable there but small.
+- NOX's phase echo (violet additive body) is bright in close shots and can dominate the frame for a few frames.
+- The reversal insert (looking up past NOX at AERON above) crops both bodies by design. It reads as an insert, not a full-body shot.
 - Audio is procedural placeholder.
 - Real-GPU performance has not been measured.
 
