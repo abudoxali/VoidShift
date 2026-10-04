@@ -88,4 +88,35 @@ describe('CameraRig', () => {
     camera.getWorldDirection(dir)
     expect(dir.z).toBeCloseTo(-1)
   })
+
+  it('portrait-authored shots (fit = 0) keep their FOV on narrow screens', () => {
+    const rig = new CameraRig()
+    const cam = createCinematicState().camera
+    cam.position.set(0, 0, 10)
+    cam.fov = 46
+    cam.fit = 0
+    rig.update(cam, resolve, 390 / 844, 0, 1 / 60)
+    expect(rig.fov).toBeCloseTo(46)
+    cam.fit = 1
+    const fitted = new CameraRig()
+    fitted.update(cam, resolve, 390 / 844, 0, 1 / 60)
+    expect(fitted.fov).toBeGreaterThan(46)
+  })
+
+  it('CHASE follows the tracked entity and leads along its motion', () => {
+    const rig = new CameraRig()
+    const cam = createCinematicState().camera
+    const subject = new Vector3(5, 1, 0)
+    cam.mode = 'CHASE'
+    cam.track = 'velocity'
+    cam.trackWeight = 1
+    cam.position.set(-2, 0.5, 1)
+    cam.lead = 2
+    rig.update(cam, () => subject, DESIGN_ASPECT, 0, 1 / 60, new Vector3(60, 0, 0))
+    expect(rig.position.toArray()).toEqual([3, 1.5, 1])
+    expect(rig.target.x).toBeCloseTo(7, 5)
+    const still = new CameraRig()
+    still.update(cam, () => subject, DESIGN_ASPECT, 0, 1 / 60, new Vector3())
+    expect(still.target.x).toBeCloseTo(5, 5)
+  })
 })

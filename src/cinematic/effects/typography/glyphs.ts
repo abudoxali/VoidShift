@@ -2,7 +2,7 @@
  * The data alphabet. Deliberately small: VoidShift typography is coordinates, vectors and a
  * handful of system words — never paragraphs.
  */
-export const CHARSET = ' 0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ.:-+/_#%?<>[]|=*ΔΣ∅·→'
+export const CHARSET = ' 0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ.:-+/_#%?<>[]|=*ΔΣ∅·→{}λ'
 
 const INDEX = new Map<string, number>([...CHARSET].map((c, i) => [c, i]))
 const FALLBACK = INDEX.get('?')!
@@ -12,7 +12,7 @@ export const SPACE_GLYPH = 0
 const NOISE_POOL = '0123456789ABCDEFX#%?/<>[]=*+-'
 
 export function glyphIndex(char: string): number {
-  return INDEX.get(char.toUpperCase()) ?? FALLBACK
+  return INDEX.get(char) ?? INDEX.get(char.toUpperCase()) ?? FALLBACK
 }
 
 /** Zero-padded signed fixed-width coordinate, e.g. -7.183 → "-07.18". */

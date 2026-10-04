@@ -45,6 +45,10 @@ export function WorldGrid() {
           uHorizon: { value: new Vector3(...P.horizon) },
           uFogNear: { value: 9 },
           uFogFar: { value: 60 },
+          uPools: { value: Array.from({ length: 3 }, () => new Vector4()) },
+          uPoolColors: { value: [new Vector3(0.3, 0.9, 1.15), new Vector3(0.55, 0.16, 0.85), new Vector3(1.3, 1.7, 1.9)] },
+          uImpact: { value: new Vector4(0, 0, 0, 0) },
+          uHeat: { value: 0 },
         },
         vertexShader: GLSL.common + GLSL.field + gridVert,
         fragmentShader: GLSL.common + GLSL.field + gridFrag,
@@ -74,9 +78,17 @@ export function WorldGrid() {
     const u = material.uniforms
     u.uReveal.value = engine.state.world.reveal
     u.uAxis.value = engine.state.world.axis
+    const { velocity: vel, void: vd } = engine.state.fighters
+    const im = engine.state.impact
+    const pools = u.uPools.value as Vector4[]
+    pools[0].set(vel.position.x, 0, vel.position.z, vel.reveal * (0.35 + vel.energy * 0.9 + engine.state.core.charge * 1.2))
+    pools[1].set(vd.position.x, 0, vd.position.z, vd.reveal * (0.3 + vd.phase * 0.4))
+    pools[2].set(im.position.x, 0, im.position.z, im.light * 5 + im.crater * 0.25)
+    ;(u.uImpact.value as Vector4).set(im.position.x, im.position.z, im.crater, im.light)
+    u.uHeat.value = im.light
     // Distance fades into the atmosphere, which itself fades in during BOOT/REVEAL.
     ;(u.uHorizon.value as Vector3).set(...P.horizon).multiplyScalar(engine.state.world.atmosphere)
   }, FRAME_STAGE.WORLD)
 
-  return <mesh geometry={geometry} material={material} renderOrder={-1} frustumCulled={false} dispose={null} />
+  return <mesh name="grid" geometry={geometry} material={material} renderOrder={-1} frustumCulled={false} dispose={null} />
 }

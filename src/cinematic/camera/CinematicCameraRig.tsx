@@ -22,7 +22,16 @@ export function CinematicCameraRig() {
   const dpr = useThree((s) => s.viewport.dpr)
   const [rig] = useState(() => new CameraRig())
   const resolve = useCallback(
-    (id: EntityId): Vector3 => (id === 'velocity' ? uniforms.uVelocityPos.value : id === 'void' ? engine.state.void.position : ORIGIN),
+    (id: EntityId): Vector3 =>
+      id === 'velocity'
+        ? uniforms.uVelocityPos.value
+        : id === 'void'
+          ? uniforms.uVoidPos.value
+          : id === 'anchor'
+            ? engine.state.anchor.position
+            : id === 'impact'
+              ? engine.state.impact.position
+              : ORIGIN,
     [engine, uniforms],
   )
 
@@ -49,7 +58,7 @@ export function CinematicCameraRig() {
 
   useFrame(() => {
     rig.shakeScale = engine.motion.shake
-    rig.update(engine.state.camera, resolve, size.width / Math.max(size.height, 1), engine.elapsed, engine.dt)
+    rig.update(engine.state.camera, resolve, size.width / Math.max(size.height, 1), engine.elapsed, engine.dt, engine.derived.velocityMotion)
     rig.apply(camera)
     uniforms.uPointScale.value = (size.height * dpr) / (2 * Math.tan(MathUtils.degToRad(camera.fov) / 2))
   }, FRAME_STAGE.CAMERA)

@@ -1,5 +1,5 @@
 import { Vector3 } from 'three'
-import { FULL_MOTION, type CinematicPhase, type MotionProfile } from '../types'
+import { FULL_MOTION, type CinematicPhase, type MotionProfile, type ViewLayout } from '../types'
 import { createCinematicState, type CinematicState } from './CinematicState'
 import { CinematicTimeline, type CueEvent, type SequenceDefinition } from './CinematicTimeline'
 
@@ -27,6 +27,7 @@ export interface EngineDerived {
 export interface CinematicEngineOptions {
   sequence: SequenceDefinition
   motion?: MotionProfile
+  layout?: ViewLayout
   autoplay?: boolean
 }
 
@@ -56,8 +57,9 @@ export class CinematicEngine {
   fixedDelta: number | null = null
 
   private timeline: CinematicTimeline
-  private readonly sequence: SequenceDefinition
+  readonly sequence: SequenceDefinition
   private motionProfile: MotionProfile
+  private viewLayout: ViewLayout
   private currentPhase: CinematicPhase
   private completed = false
   /** Cues with time > cueCursor are still pending. -1 lets cues placed at t = 0 fire. */
@@ -73,13 +75,14 @@ export class CinematicEngine {
     frame: new Set(),
   }
 
-  constructor({ sequence, motion = FULL_MOTION, autoplay = true }: CinematicEngineOptions) {
+  constructor({ sequence, motion = FULL_MOTION, layout = 'landscape', autoplay = true }: CinematicEngineOptions) {
     this.sequence = sequence
     this.motionProfile = motion
-    this.timeline = new CinematicTimeline(sequence, this.state, motion)
+    this.viewLayout = layout
+    this.timeline = new CinematicTimeline(sequence, this.state, motion, layout)
     this.currentPhase = this.timeline.phaseAt(0)
     this.playing = autoplay
-    this.prevVelocityPos.copy(this.state.velocity.position)
+    this.prevVelocityPos.copy(this.state.fighters.velocity.position)
   }
 
   get duration(): number {
@@ -94,6 +97,10 @@ export class CinematicEngine {
     return this.motionProfile
   }
 
+  get layout(): ViewLayout {
+    return this.viewLayout
+  }
+
   get isComplete(): boolean {
     return this.completed
   }
@@ -104,6 +111,40 @@ export class CinematicEngine {
 
   get cues() {
     return this.timeline.cues
+  }
+
+  get scenes() {
+    return this.timeline.scenes
+  }
+
+  get shots() {
+    return this.timeline.shots
+  }
+
+  get scene() {
+    return this.timeline.sceneAt(this.time)
+  }
+
+  get shot() {
+    return this.timeline.shotAt(this.time)
+  }
+
+  /** Playback speed of the sequence clock (review slow motion). */
+  setTimeScale(scale: number): void {
+    this.timeScale = Math.max(0, scale)
+  }
+
+  /** Jump to a scene by id (review mode). Returns false when the id is unknown. */
+  seekScene(id: string): boolean {
+    const scene = this.timeline.scenes.find((s) => s.id === id)
+    if (!scene) return false
+    this.seek(scene.time)
+    return true
+  }
+
+  /** Authoring check — see CinematicTimeline.overlaps. */
+  overlaps() {
+    return this.timeline.overlaps()
   }
 
   on<K extends keyof EngineEvents>(event: K, fn: EngineEvents[K]): () => void {
@@ -183,10 +224,22 @@ export class CinematicEngine {
    */
   setMotion(profile: MotionProfile): void {
     if (profile === this.motionProfile) return
+    this.motionProfile = profile
+    this.rebuild()
+  }
+
+  /** Switch composition layout (orientation change). Rebuilt like `setMotion`. */
+  setLayout(layout: ViewLayout): void {
+    if (layout === this.viewLayout) return
+    this.viewLayout = layout
+    this.rebuild()
+  }
+
+  /** Recompile the timeline for the current profile/layout, preserving relative progress. */
+  private rebuild(): void {
     const progress = this.timeline.duration > 0 ? this.time / this.timeline.duration : 0
     this.timeline.dispose()
-    this.motionProfile = profile
-    this.timeline = new CinematicTimeline(this.sequence, this.state, profile)
+    this.timeline = new CinematicTimeline(this.sequence, this.state, this.motionProfile, this.viewLayout)
     this.seek(progress * this.timeline.duration)
   }
 
@@ -205,10 +258,10 @@ export class CinematicEngine {
   }
 
   private updateDerived(dt: number): void {
-    const pos = this.state.velocity.position
+    const pos = this.state.fighters.velocity.position
     const motion = this.derived.velocityMotion
     // Repositioning while invisible is a placement, not motion: never derive speed from it.
-    const visible = this.state.velocity.reveal > 0
+    const visible = this.state.fighters.velocity.reveal > 0
     if (dt > 0 && visible && this.prevVelocityVisible) {
       motion.subVectors(pos, this.prevVelocityPos).divideScalar(dt)
     } else {
@@ -220,8 +273,8 @@ export class CinematicEngine {
   }
 
   private resetDerived(): void {
-    this.prevVelocityPos.copy(this.state.velocity.position)
-    this.prevVelocityVisible = this.state.velocity.reveal > 0
+    this.prevVelocityPos.copy(this.state.fighters.velocity.position)
+    this.prevVelocityVisible = this.state.fighters.velocity.reveal > 0
     this.derived.velocityMotion.set(0, 0, 0)
     this.derived.velocitySpeed = 0
   }

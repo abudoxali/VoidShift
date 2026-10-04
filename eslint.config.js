@@ -21,13 +21,13 @@ export default tseslint.config(
     // React Three Fiber idiom: three.js objects created once per component (useMemo/useState)
     // are mutated imperatively inside useFrame. The React Compiler immutability rule assumes
     // hook results are immutable React values, which does not hold for GPU resources.
-    files: ['src/cinematic/**/*.tsx'],
+    files: ['src/cinematic/**/*.tsx', 'src/lab/**/*.tsx'],
     rules: {
       'react-hooks/immutability': 'off',
     },
   },
   {
-    files: ['*.config.{js,ts}', 'e2e/**/*.ts'],
+    files: ['*.config.{js,ts}', 'e2e/**/*.ts', 'scripts/**/*.{ts,mjs}'],
     languageOptions: { globals: { ...globals.node } },
   },
 )

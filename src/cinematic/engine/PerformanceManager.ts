@@ -31,7 +31,7 @@ export const QUALITY_PROFILES: Readonly<Record<QualityTier, QualityProfile>> = {
     tier: 'ULTRA',
     maxDpr: 2,
     msaa: 4,
-    bloom: { enabled: true, levels: 8 },
+    bloom: { enabled: true, levels: 6 },
     lensChroma: true,
     grain: true,
     gridSegments: 320,

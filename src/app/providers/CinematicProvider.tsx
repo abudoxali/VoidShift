@@ -2,8 +2,9 @@ import { useEffect, useState, type ReactNode } from 'react'
 import { AudioDirector } from '../../cinematic/audio/AudioDirector'
 import { CinematicContext } from '../../cinematic/engine/CinematicContext'
 import { CinematicEngine } from '../../cinematic/engine/CinematicEngine'
-import { FOUNDATION_SEQUENCE } from '../../cinematic/sequences/foundation'
-import { FULL_MOTION, REDUCED_MOTION } from '../../cinematic/types'
+import { INTRO_SEQUENCE } from '../../cinematic/sequences/intro'
+import { CHARACTER_SHEET } from '../../cinematic/sequences/sheet'
+import { FULL_MOTION, REDUCED_MOTION, layoutForAspect } from '../../cinematic/types'
 import { selectReducedMotion, useExperience } from '../../store/experienceStore'
 import { exposeDebugHandle } from './debugHandle'
 
@@ -15,8 +16,9 @@ export function CinematicProvider({ children }: { children: ReactNode }) {
   const [engine] = useState(
     () =>
       new CinematicEngine({
-        sequence: FOUNDATION_SEQUENCE,
+        sequence: new URLSearchParams(window.location.search).get('sheet') === 'characters' ? CHARACTER_SHEET : INTRO_SEQUENCE,
         motion: selectReducedMotion(useExperience.getState()) ? REDUCED_MOTION : FULL_MOTION,
+        layout: layoutForAspect(window.innerWidth / Math.max(window.innerHeight, 1)),
       }),
   )
   const [audio] = useState(() => new AudioDirector())
@@ -47,6 +49,13 @@ export function CinematicProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => engine.setMotion(reduced ? REDUCED_MOTION : FULL_MOTION), [engine, reduced])
 
+  // Orientation: portrait screens get their own compiled shot variants (rebuild only on change).
+  useEffect(() => {
+    const onResize = () => engine.setLayout(layoutForAspect(window.innerWidth / Math.max(window.innerHeight, 1)))
+    window.addEventListener('resize', onResize)
+    return () => window.removeEventListener('resize', onResize)
+  }, [engine])
+
   // Audio follows cues and the toggle.
   useEffect(() => {
     const offCue = engine.on('cue', (cue) => audio.handleCue(cue))
@@ -69,7 +78,14 @@ export function CinematicProvider({ children }: { children: ReactNode }) {
     return () => document.removeEventListener('visibilitychange', onVisibility)
   }, [engine])
 
-  useEffect(() => (debug ? exposeDebugHandle(engine) : undefined), [engine, debug])
+  const review = useExperience((s) => s.review)
+  useEffect(() => (debug || review ? exposeDebugHandle(engine) : undefined), [engine, debug, review])
+
+  // Scene jump (?scene=<id>): lands on a scene through the deterministic timeline.
+  useEffect(() => {
+    const scene = new URLSearchParams(window.location.search).get('scene')
+    if (scene) engine.seekScene(scene)
+  }, [engine])
 
   return <CinematicContext value={engine}>{children}</CinematicContext>
 }

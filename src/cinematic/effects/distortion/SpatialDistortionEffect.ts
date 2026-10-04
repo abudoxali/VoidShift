@@ -30,6 +30,11 @@ export class SpatialDistortionEffect extends Effect {
         ['uOnScreen', new Uniform(0)],
         ['uClock', new Uniform(0)],
         ['uShock', new Uniform(new Vector4(0.5, 0.5, 0, 0))],
+        ['uPhase', new Uniform(0)],
+        ['uFold', new Uniform(0)],
+        ['uDesync', new Uniform(0)],
+        ['uSplitDir', new Uniform(new Vector2(0, 1))],
+        ['uAxisDir', new Uniform(new Vector2(1, 0))],
       ]),
     })
   }
@@ -46,6 +51,15 @@ export class SpatialDistortionEffect extends Effect {
     this.u('uCorruption').value = p.corruption
     this.u('uOnScreen').value = p.onScreen ? 1 : 0
     this.u('uClock').value = clock
+  }
+
+  /** PHASE parameters; directions are unit vectors in aspect-corrected screen space. */
+  setPhase(phase: number, fold: number, desync: number, axisDir: Vector2, splitDir: Vector2): void {
+    this.u('uPhase').value = phase
+    this.u('uFold').value = fold
+    this.u('uDesync').value = desync
+    ;(this.u('uAxisDir').value as Vector2).copy(axisDir)
+    ;(this.u('uSplitDir').value as Vector2).copy(splitDir)
   }
 
   setChroma(enabled: boolean): void {

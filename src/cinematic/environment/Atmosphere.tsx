@@ -97,5 +97,5 @@ export function Atmosphere() {
     material.uniforms.uFade.value = engine.state.world.atmosphere
   }, FRAME_STAGE.WORLD)
 
-  return <mesh ref={mesh} geometry={geometry} material={material} renderOrder={-2} frustumCulled={false} dispose={null} />
+  return <mesh name="atmosphere" ref={mesh} geometry={geometry} material={material} renderOrder={-2} frustumCulled={false} dispose={null} />
 }

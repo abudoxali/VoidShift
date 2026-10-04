@@ -3,7 +3,6 @@ import { useMemo, useState, type ReactNode } from 'react'
 import { Vector3 } from 'three'
 import { useExperience } from '../../store/experienceStore'
 import { recordFrameStats } from '../../utils/renderStats'
-import { velocityIdleOffset } from '../entities/Velocity/idle'
 import { WorldContext, type WorldContextValue } from '../scenes/WorldContext'
 import { createWorldUniforms } from '../shaders'
 import { useCinematicEngine } from './CinematicContext'
@@ -22,7 +21,6 @@ export function SceneController({ children }: { children: ReactNode }) {
   const tier = useExperience((s) => s.quality.tier)
   const [uniforms] = useState(createWorldUniforms)
   const [monitor] = useState(() => new FrameRateMonitor())
-  const idle = useMemo(() => new Vector3(), [])
   const gl = useThree((s) => s.gl)
 
   const value = useMemo<WorldContextValue>(() => ({ uniforms, profile: QUALITY_PROFILES[tier] }), [uniforms, tier])
@@ -38,12 +36,21 @@ export function SceneController({ children }: { children: ReactNode }) {
 
     uniforms.uTime.value = engine.elapsed
     uniforms.uMotion.value = engine.motion.ambient
-    uniforms.uVoidPos.value.copy(s.void.position)
-    uniforms.uVoidMass.value = s.void.mass
-    uniforms.uVoidRadius.value = s.void.radius
-    velocityIdleOffset(engine.elapsed, s.velocity.idle * engine.motion.ambient, idle)
-    uniforms.uVelocityPos.value.copy(s.velocity.position).add(idle)
-    uniforms.uVelocityEnergy.value = s.velocity.energy * s.velocity.reveal
+    const vel = s.fighters.velocity
+    const vd = s.fighters.void
+    // The world field: VOID's gravity bends the floor and the data; VELOCITY energises them.
+    uniforms.uVoidPos.value.copy(vd.position).add(CHEST)
+    uniforms.uVoidMass.value = s.world.voidField * vd.reveal
+    uniforms.uVoidRadius.value = 0.42
+    uniforms.uVelocityPos.value.copy(vel.position).add(CHEST)
+    uniforms.uVelocityEnergy.value = vel.energy * vel.reveal
+    uniforms.uVoidPhase.value = vd.phase
+    uniforms.uVoidFold.value = 0
+    uniforms.uVoidInversion.value = 0
+    uniforms.uPhaseAxis.value.subVectors(vd.position, vel.position).setY(0)
+    if (uniforms.uPhaseAxis.value.lengthSq() < 1e-8) uniforms.uPhaseAxis.value.set(1, 0, 0)
+    uniforms.uPhaseAxis.value.normalize()
+    uniforms.uSplitAxis.value.set(-uniforms.uPhaseAxis.value.z, 0, uniforms.uPhaseAxis.value.x)
 
     if (monitor.sample(delta, tier)) {
       if (useExperience.getState().degradeQuality()) monitor.reset()
@@ -52,3 +59,5 @@ export function SceneController({ children }: { children: ReactNode }) {
 
   return <WorldContext value={value}>{children}</WorldContext>
 }
+
+const CHEST = new Vector3(0, 1.25, 0)
