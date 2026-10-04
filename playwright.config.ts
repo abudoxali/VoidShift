@@ -14,7 +14,8 @@ export default defineConfig({
   use: {
     baseURL: 'http://localhost:4173',
     launchOptions: {
-      args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'],
+      // SwiftShader by default (CI has no GPU); PW_GPU=1 runs on the local GPU (ANGLE D3D11).
+      args: process.env.PW_GPU ? ['--use-angle=d3d11', '--enable-gpu', '--ignore-gpu-blocklist'] : ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'],
     },
   },
   webServer: {

@@ -44,8 +44,8 @@ export const SHOTS = {
   ARRIVAL_WIDE: still([-0.25, 0.42, 5.6], [-0.2, 1.0, 0], 42, { fullBody: ['velocity', 'void'] }),
 
   // 02 STANDOFF — inserts. AERON's eyes; NOX's eyes; AERON sinking into his stance.
-  AERON_EYES: still([-1.38, 1.6, 0.2], [-1.95, 1.58, 0], 24),
-  NOX_EYES: still([0.88, 1.68, -0.2], [1.6, 1.64, 0], 28),
+  AERON_EYES: still([-1.42, 1.5, 0.24], [-1.95, 1.53, 0], 24),
+  NOX_EYES: still([0.95, 1.46, -0.3], [1.6, 1.58, 0], 26),
   AERON_STANCE_LOW: still([-0.53, 0.5, 2.68], [-1.85, 0.78, 0], 42, { fullBody: ['velocity'] }),
 
   // 03 FIRST ATTACK — profile two-shot: the whole dash and punch in one readable frame…

@@ -34,6 +34,10 @@ export interface FighterState {
   hit: number
   /** 0..1 breathing amplitude. */
   breath: number
+  /** Facial expression transition (names from characters/sculpt/expressions). */
+  expr: string
+  exprFrom: string
+  exprBlend: number
 }
 
 export interface CinematicState {
@@ -140,7 +144,7 @@ export const STAGE = {
 /** Yaw that makes a fighter face along (dx, dz). */
 export const facing = (dx: number, dz: number): number => Math.atan2(dx, dz)
 
-function fighter(position: Vector3, yaw: number, pose: string): FighterState {
+function fighter(position: Vector3, yaw: number, pose: string, expr: string): FighterState {
   return {
     position,
     yaw,
@@ -155,6 +159,9 @@ function fighter(position: Vector3, yaw: number, pose: string): FighterState {
     trails: 0,
     hit: 0,
     breath: 1,
+    expr,
+    exprFrom: expr,
+    exprBlend: 1,
   }
 }
 
@@ -162,8 +169,8 @@ export function createCinematicState(): CinematicState {
   return {
     world: { reveal: 0, axis: 0, atmosphere: 0, structures: 0, voidField: 0 },
     fighters: {
-      velocity: fighter(STAGE.velocityHome.clone(), facing(1, 0), 'assemble'),
-      void: fighter(STAGE.voidHome.clone(), facing(-1, 0), 'stand'),
+      velocity: fighter(STAGE.velocityHome.clone(), facing(1, 0), 'assemble', 'neutral'),
+      void: fighter(STAGE.voidHome.clone(), facing(-1, 0), 'stand', 'threat'),
     },
     anchor: { position: new Vector3(0, -5, 0), spin: 0, visible: 0, planted: 0, glow: 0, held: 0 },
     core: { charge: 0, overload: 0 },

@@ -53,7 +53,7 @@ void main() {
   vec2 cell = fract(g + 0.5) - 0.5;
   float dotR = max(0.022, fw * 0.9);
   float lattice = 1.0 - smoothstep(dotR * 0.6, dotR, length(cell));
-  lattice *= 0.55;
+  lattice *= 0.16;
 
   // ── Major survey lines every 4 units, carrying ruler ticks every 0.5.
   vec2 major = g / 4.0;
@@ -65,7 +65,8 @@ void main() {
   // Survey lines are interrupted (dashed) — a measured space, not a tiled floor.
   float dashX = step(0.18, fract(g.y * 0.25 + 0.09));
   float dashZ = step(0.18, fract(g.x * 0.25 + 0.09));
-  float survey = max(mx * dashX, mz * dashZ) * 0.3 + max(tickX, tickZ) * 0.4;
+  // Thin continuous light seams every 4 units (a polished arena, not a tiled grid demo).
+  float survey = max(mx, mz) * 0.42 + max(mx * dashX, mz * dashZ) * 0.12 + max(tickX, tickZ) * 0.12;
 
   // ── Origin axes, drawn outward during BOOT.
   float axisExtent = uAxis * 90.0;
@@ -135,6 +136,22 @@ void main() {
   color += crack * (hot * (0.12 + uHeat * 1.8) + uVoidTint * 0.2) * uImpact.z * (1.0 - smoothstep(0.0, reach, rr) * 0.6);
   // The well is darker than the world: light falls into it.
   color *= 1.0 - clamp(vWell * 0.55, 0.0, 0.85);
+
+  // ── Polished floor: Fresnel sheen of the horizon haze, wet patches, and view-aligned
+  // reflection streaks of every light pool (the fighters' energy, the Code Core, the impact).
+  vec3 toCam = cameraPosition - vWorld;
+  vec3 V = normalize(toCam);
+  float fres = pow(1.0 - clamp(V.y, 0.0, 1.0), 5.0);
+  float wet = 0.55 + 0.45 * smoothstep(0.35, 0.7, vsNoise3(vec3(g * 0.35, 0.5)));
+  color += uHorizon * 6.0 * fres * wet;
+  vec2 viewXZ = normalize(-toCam.xz + vec2(1e-5));
+  for (int i = 0; i < 3; i++) {
+    vec2 d = g - uPools[i].xz;
+    float along = dot(d, viewXZ);
+    float perp = abs(d.x * viewXZ.y - d.y * viewXZ.x);
+    float streak = exp(-perp * perp * 9.0) * exp(-max(along, 0.0) * 0.9 - max(-along, 0.0) * 3.5);
+    color += uPoolColors[i] * uPools[i].w * streak * 0.16 * wet * revealed;
+  }
 
   // ── Atmospheric depth: fade to the horizon colour.
   float dist = distance(vWorld, cameraPosition);

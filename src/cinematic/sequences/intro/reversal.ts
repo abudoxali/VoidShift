@@ -2,7 +2,7 @@ import { shot } from '../../camera/shot'
 import { CUES } from '../../engine/cues'
 import type { PhaseSegment } from '../../engine/CinematicTimeline'
 import { MARKS } from './marks'
-import { arc, moveTo, pose, tween } from './moves'
+import { arc, face, moveTo, pose, tween } from './moves'
 
 /**
  * SCENE 09 — POSITIONAL REVERSAL (1.1 s). NOX reacts — head first, then shoulders, then torso —
@@ -17,6 +17,8 @@ export const reversalSegment: PhaseSegment = {
     shot(ctx, 'NOX_TURN', 0)
     tween(ctx, 'void', { phase: 0 }, 0.0, 0.15)
     pose(ctx, 'void', 'turnHead', 0.02, 0.14, 'power3.out')
+    face(ctx, 'void', 'surprise', 0.06, 0.1)
+    face(ctx, 'velocity', 'determined', 0.1, 0.2)
     ctx.cue(CUES.VOID_REALIZE, 0.04)
     pose(ctx, 'void', 'turnShoulders', 0.3, 0.16, 'power2.out')
     pose(ctx, 'void', 'turnGuard', 0.56, 0.22, 'power2.out')

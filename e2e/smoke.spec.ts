@@ -22,6 +22,8 @@ async function frames(page: Page, n = 2) {
 async function boot(page: Page, query = 'debug&quality=lite') {
   await page.goto(`/?${query}`)
   await page.waitForFunction(() => Boolean(window.__VOIDSHIFT__?.renderer), null, { timeout: 60_000 })
+  // The clock is held until both sculpted fighters are loaded (baked files; generated if stale).
+  await page.waitForFunction(() => window.__VOIDSHIFT__!.ready(), null, { timeout: 90_000 })
 }
 
 /** Fraction of sampled canvas pixels that are not near-black. */

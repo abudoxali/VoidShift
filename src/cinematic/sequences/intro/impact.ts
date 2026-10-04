@@ -2,7 +2,7 @@ import { shot } from '../../camera/shot'
 import { BURST, CUES } from '../../engine/cues'
 import type { PhaseSegment } from '../../engine/CinematicTimeline'
 import { MARKS } from './marks'
-import { arc, burst, flash, impactFrame, moveTo, pose, set, shakeIf, tween } from './moves'
+import { arc, burst, face, flash, impactFrame, moveTo, pose, set, shakeIf, tween } from './moves'
 
 const IMPACT_DURATION = 4.6
 
@@ -31,6 +31,7 @@ export const impactSegment: PhaseSegment = {
     burst(ctx, BURST.SPARKS, c, 0.0, 0.7)
     tween(ctx, 'void', { hit: 1, energy: 1 }, 0, 0.03)
     pose(ctx, 'void', 'recoil', 0.02, 0.12, 'power3.out')
+    face(ctx, 'void', 'pain', 0.02, 0.06)
 
     // 2. Impact frames (silhouettes), the core spent.
     impactFrame(ctx, 0.08, 2)
@@ -78,6 +79,7 @@ export const impactSegment: PhaseSegment = {
     shot(ctx, 'AFTERMATH_PUSH', 2.02, { duration: IMPACT_DURATION - 2.02, ease: 'sine.inOut' })
     ctx.cue(CUES.AFTERMATH, 2.0)
     pose(ctx, 'velocity', 'recover', 2.6, 0.9, 'power2.inOut')
+    face(ctx, 'velocity', 'recover', 1.0, 0.4)
     tl.to(state.lights, { key: 0.45, ambient: 0.25, duration: 1.6 }, at(2.0))
     tl.to(state.fx, { exposure: 0.3, duration: 1.3, ease: 'sine.in' }, at(IMPACT_DURATION - 1.3))
   },

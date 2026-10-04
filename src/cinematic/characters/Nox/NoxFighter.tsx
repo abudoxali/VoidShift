@@ -1,84 +1,79 @@
-import { useFrame } from '@react-three/fiber'
-import { useThree } from '@react-three/fiber'
+import { useFrame, useThree } from '@react-three/fiber'
 import { useEffect, useMemo } from 'react'
-import { AdditiveBlending, Color, DoubleSide, Group, Mesh, MeshBasicMaterial, MeshStandardMaterial, PointLight, Vector3 } from 'three'
+import { AdditiveBlending, Color, DoubleSide, Group, MeshBasicMaterial, MeshStandardMaterial, PointLight, Skeleton, SkinnedMesh, Vector3 } from 'three'
 import { CharacterRig } from '../../animation/CharacterRig'
 import { NOX_POSES } from '../../animation/poses/noxPoses'
+import { JOINTS } from '../../animation/skeleton'
 import { useCinematicEngine } from '../../engine/CinematicContext'
 import { FRAME_STAGE } from '../../engine/frameStages'
 import { useWorld } from '../../scenes/WorldContext'
 import { useExperience } from '../../../store/experienceStore'
 import { hash1 } from '../../../utils/math'
-import { disposeGeometries } from '../bodyParts'
 import { ClothStrips, type Collider } from '../cloth/ClothStrips'
-import { createFighterUniforms, withDissolve } from '../fighterMaterials'
-import { RigidBatch } from '../RigidBatch'
+import { createBodyScratch, driveBody, useSculptedBody } from '../fighterBody'
 import { FIGHTER_RIGS } from '../registry'
+import { applyBindPose } from '../sculpt/frames'
 import { SkeletonLines } from '../SkeletonLines'
 import { PIVOT_HEIGHT, driveFighter, useFighterRigObject } from '../useFighterRig'
-import { NOX_COLORS, NOX_PROPORTIONS, buildNoxBody } from './buildNoxBody'
+import { NOX_PROPORTIONS } from './noxDesign'
 
-const VIOLET = new Color(...NOX_COLORS.violet)
-const CRIMSON = new Color(...NOX_COLORS.crimson)
-const EYE = new Color(...NOX_COLORS.eye)
+const KEY_DIR = new Vector3(0.45, 0.7, 0.6).normalize()
+const RIM_DIR = new Vector3(0.5, 0.6, -1).normalize()
 
 /**
- * NOX (engine id `void`). Heavy, planted, cloaked. While he phases, his fractured plates jump to
- * contradictory positions and a translucent echo of his body appears beside him. The cloak
- * strips answer every turn and stop.
+ * NOX (engine id `void`). Heavy, planted, cloaked, sculpted. While he phases his body splits into
+ * displaced slices (material) and a translucent violet echo of his body stands beside him at a
+ * contradictory position. The cloak strips answer every turn and stop.
  */
 export function NoxFighter() {
   const engine = useCinematicEngine()
   const { profile } = useWorld()
   const camera = useThree((s) => s.camera)
   const fr = useFighterRigObject(NOX_PROPORTIONS)
-  const uniforms = useMemo(() => createFighterUniforms(NOX_COLORS.dissolve), [])
-  const body = useMemo(() => buildNoxBody(fr.rig, uniforms, NOX_PROPORTIONS), [fr, uniforms])
-  const batch = useMemo(() => new RigidBatch(fr.outer, 'void', body.materials), [fr, body])
+  const body = useSculptedBody('nox', fr, profile.tier)
   useEffect(() => {
     FIGHTER_RIGS.void = fr.rig
     return () => void (FIGHTER_RIGS.void = null)
   }, [fr])
 
-  // Echo: the same body at a conflicting position, drawn as one translucent violet pass.
+  // Echo: his body geometry on a second rig, one additive violet draw.
   const echo = useMemo(() => {
+    if (!body) return null
     const rig = new CharacterRig(NOX_PROPORTIONS)
-    const ghost = new MeshBasicMaterial({ color: new Color(0.35, 0.12, 0.7), transparent: true, opacity: 0, blending: AdditiveBlending, depthWrite: false })
-    const b = buildNoxBody(rig, createFighterUniforms(NOX_COLORS.dissolve), NOX_PROPORTIONS)
-    Object.values(b.materials).forEach((m) => m.dispose())
-    rig.root.traverse((o) => {
-      if ((o as Mesh).isMesh) (o as Mesh).material = ghost
-    })
     rig.root.position.y = -PIVOT_HEIGHT
     const outer = new Group()
     outer.add(rig.root)
-    return { rig, outer, ghost, batch: new RigidBatch(outer, 'void-echo') }
-  }, [])
-
+    applyBindPose(rig)
+    outer.updateMatrixWorld(true)
+    const skeleton = new Skeleton(JOINTS.map((j) => rig.joints[j]))
+    const ghost = new MeshBasicMaterial({ color: new Color(0.35, 0.12, 0.7), transparent: true, opacity: 0, blending: AdditiveBlending, depthWrite: false })
+    const mesh = new SkinnedMesh(body.geometry.body, ghost)
+    mesh.frustumCulled = false
+    mesh.bind(skeleton, rig.root.matrixWorld)
+    rig.root.add(mesh)
+    return { rig, outer, ghost, skeleton }
+  }, [body])
   useEffect(
     () => () => {
-      batch.dispose()
-      echo.batch.dispose()
-      disposeGeometries(fr.outer)
-      disposeGeometries(echo.rig.root)
-      Object.values(body.materials).forEach((m) => m.dispose())
+      if (!echo) return
       echo.ghost.dispose()
+      echo.skeleton.dispose()
     },
-    [fr, body, batch, echo],
+    [echo],
   )
 
   // Cloak: six strips from the mantle's back edge; heavier and slower than AERON's scarf.
   const cloak = useMemo(() => {
-    const mat = withDissolve(new MeshStandardMaterial({ color: NOX_COLORS.cloak, roughness: 0.8, side: DoubleSide, emissive: new Color(0x0a0410) }), uniforms, 'nox-cloak-strips')
-    const xs = [-0.26, -0.15, -0.05, 0.05, 0.15, 0.26]
+    const mat = new MeshStandardMaterial({ color: 0x0b0810, roughness: 0.85, side: DoubleSide, emissive: new Color(0x06020a) })
+    const xs = [-0.28, -0.17, -0.06, 0.06, 0.17, 0.28]
     const strips = new ClothStrips(
       xs.map((x, i) => ({
         anchor: fr.rig.joints.chest,
-        offset: new Vector3(x, 0.08 - Math.abs(x) * 0.25, -0.14 + Math.abs(x) * 0.12),
-        length: 0.95 + (i % 2) * 0.12 - Math.abs(x) * 0.6,
-        segments: 10,
-        width: 0.13,
-        tipWidth: 0.55,
+        offset: new Vector3(x, 0.12 - Math.abs(x) * 0.2, -0.17 + Math.abs(x) * 0.1),
+        length: 1.05 + (i % 2) * 0.12 - Math.abs(x) * 0.5,
+        segments: 11,
+        width: 0.15,
+        tipWidth: 0.6,
         rest: new Vector3(x * 0.6, -1, -0.25),
       })),
       mat,
@@ -86,7 +81,7 @@ export function NoxFighter() {
     strips.drag = 2.2
     strips.stiffness = 5
     return { strips, mat }
-  }, [fr, uniforms])
+  }, [fr])
   useEffect(
     () => () => {
       cloak.strips.dispose()
@@ -100,56 +95,55 @@ export function NoxFighter() {
 
   const light = useMemo(() => new PointLight(new Color(0.72, 0.46, 0.95), 0, 5, 2), [])
   const scratch = useMemo(
-    () => ({ p: new Vector3(), key: new Vector3(), settled: false, colliders: [{ center: new Vector3(), radius: 0.26 }, { center: new Vector3(), radius: 0.22 }, { center: new Vector3(), radius: 0.2 }] as Collider[] }),
+    () => ({
+      p: new Vector3(),
+      key: new Vector3(),
+      look: new Vector3(),
+      settled: false,
+      body: createBodyScratch(),
+      colliders: [{ center: new Vector3(), radius: 0.28 }, { center: new Vector3(), radius: 0.24 }, { center: new Vector3(), radius: 0.22 }] as Collider[],
+    }),
     [],
   )
-  useEffect(() => engine.on('seek', () => void (scratch.settled = false)), [engine, scratch])
+  useEffect(
+    () =>
+      engine.on('seek', () => {
+        scratch.settled = false
+        scratch.body.valid = false
+      }),
+    [engine, scratch],
+  )
 
   useFrame(() => {
     const f = engine.state.fighters.void
-    const { skeletonDebug } = useExperience.getState()
+    const { fx, skeletonDebug } = useExperience.getState()
     driveFighter(f, fr, NOX_POSES, NOX_POSES.guard, engine)
-    uniforms.uReveal.value = f.reveal
     const t = engine.elapsed
     const ph = f.phase
-
-    body.hands.L.fist.userData.batchHidden = fr.rig.handL !== 'fist'
-    body.hands.L.open.userData.batchHidden = fr.rig.handL === 'fist'
-    body.hands.R.fist.userData.batchHidden = fr.rig.handR !== 'fist'
-    body.hands.R.open.userData.batchHidden = fr.rig.handR === 'fist'
-
-    const e = 0.5 + f.energy * 0.8 + ph * 0.8
-    body.materials.violet.emissive.copy(VIOLET).multiplyScalar(e)
-    body.materials.crimson.emissive.copy(CRIMSON).multiplyScalar(0.6 + f.energy * 0.6 + ph)
-    body.materials.eye.emissive.copy(EYE).multiplyScalar(0.75 + f.energy * 0.3 + ph * 0.6)
-
-    // Phase: the fractured plates jump to contradictory positions, flickering at 14 Hz.
-    const tq = Math.floor(t * 14 * Math.max(engine.motion.ambient, 0.4))
-    for (const part of body.phaseParts) {
-      const on = hash1(part.seed * 97 + tq) < 0.65 ? 1 : 0.35
-      const amt = ph * (0.06 + part.seed * 0.16) * on
-      part.object.position.copy(part.base).addScaledVector(part.dir, amt)
+    const dt = engine.playing ? engine.dt * engine.timeScale : 0
+    if (body) {
+      // Eyes on AERON; on the anchor while it is in flight past him.
+      const aeron = FIGHTER_RIGS.velocity
+      const a = engine.state.anchor
+      const look = a.visible > 0.5 && a.held < 0.5 && a.planted < 0.5 ? scratch.look.copy(a.position) : aeron && engine.state.fighters.velocity.reveal > 0.3 ? aeron.jointWorld('head', scratch.look) : null
+      driveBody(body, f, fr, { time: t, dt, camera, lookAt: look, seed: 2, glow: fx === 'full' ? 1 : 0.7, rimStrength: 0.12 + engine.state.lights.rimVoid * 0.3, rimDir: RIM_DIR, keyDir: KEY_DIR }, scratch.body)
     }
-    body.shards.children.forEach((s) => {
-      const d = s.userData as { radius: number; angle: number; height: number; speed: number; tilt: number }
-      const a = d.angle + t * d.speed * engine.motion.ambient
-      const r = d.radius * (1 + ph * 0.6)
-      s.position.set(Math.cos(a) * r, d.height + Math.sin(a * 2 + d.tilt) * 0.04, Math.sin(a) * r * 0.7)
-      s.rotation.set(d.tilt + t * 0.7, a, 0)
-    })
-    batch.update(fr.outer.visible)
 
     // Echo at a conflicting position.
-    const echoOn = ph > 0.02 && f.reveal > 0.5
-    if (echoOn) {
-      const side = hash1(tq * 3.1) < 0.5 ? -1 : 1
-      echo.outer.position.copy(fr.outer.position)
-      echo.outer.rotation.copy(fr.outer.rotation)
-      echo.outer.translateX((0.3 + 0.2 * hash1(tq * 7.7)) * side * ph)
-      echo.rig.apply(NOX_POSES[f.from as keyof typeof NOX_POSES] ?? NOX_POSES.guard, NOX_POSES[f.pose as keyof typeof NOX_POSES] ?? NOX_POSES.guard, f.blend, { time: t, breath: 0, jitter: ph })
-      echo.ghost.opacity = ph * (profile.tier === 'LITE' ? 0.22 : 0.32)
+    if (echo) {
+      const echoOn = fx === 'full' && ph > 0.02 && f.reveal > 0.5
+      echo.outer.visible = echoOn
+      if (echoOn) {
+        const tq = Math.floor(t * 14 * Math.max(engine.motion.ambient, 0.4))
+        const side = hash1(tq * 3.1) < 0.5 ? -1 : 1
+        echo.outer.position.copy(fr.outer.position)
+        echo.outer.rotation.copy(fr.outer.rotation)
+        echo.outer.translateX((0.3 + 0.2 * hash1(tq * 7.7)) * side * ph)
+        echo.rig.apply(NOX_POSES[f.from as keyof typeof NOX_POSES] ?? NOX_POSES.guard, NOX_POSES[f.pose as keyof typeof NOX_POSES] ?? NOX_POSES.guard, f.blend, { time: t, breath: 0, jitter: ph })
+        echo.outer.updateMatrixWorld(true)
+        echo.ghost.opacity = ph * (profile.tier === 'LITE' ? 0.08 : 0.11)
+      }
     }
-    echo.batch.update(echoOn)
 
     skeleton.update(fr.rig, skeletonDebug ? 1 : 0)
 
@@ -157,7 +151,6 @@ export function NoxFighter() {
     light.position.copy(scratch.p).add(scratch.key.set(-0.2, 0.2, 0.8).applyQuaternion(fr.outer.quaternion))
     light.intensity = f.reveal * (0.45 + f.energy * 0.5 + ph * 1.2)
 
-    const dt = engine.playing ? engine.dt * engine.timeScale : 0
     fr.rig.jointWorld('chest', scratch.colliders[0].center)
     fr.rig.jointWorld('spine', scratch.colliders[1].center)
     fr.rig.jointWorld('hips', scratch.colliders[2].center)
@@ -168,13 +161,13 @@ export function NoxFighter() {
     if (dt > 0) scratch.settled = false
     cloak.strips.step(dt, scratch.colliders)
     cloak.strips.write(camera, 1)
-    cloak.strips.mesh.visible = f.reveal > 0.02
+    cloak.strips.mesh.visible = f.reveal > 0.3
   }, FRAME_STAGE.WORLD)
 
   return (
     <>
-      <primitive object={batch.group} dispose={null} />
-      <primitive object={echo.batch.group} dispose={null} />
+      <primitive name="void" object={fr.outer} dispose={null} />
+      {echo && <primitive name="void-echo" object={echo.outer} dispose={null} />}
       <primitive object={light} dispose={null} />
       <primitive name="void-cloth" object={cloak.strips.mesh} dispose={null} />
       <primitive name="void-skeleton" object={skeleton.lines} dispose={null} />

@@ -11,23 +11,21 @@ import { FRAME_STAGE } from '../../engine/frameStages'
 import { useWorld } from '../../scenes/WorldContext'
 import { useExperience } from '../../../store/experienceStore'
 import { smoothstep } from '../../../utils/math'
-import { disposeGeometries } from '../bodyParts'
 import { ClothStrips, type Collider } from '../cloth/ClothStrips'
-import { createFighterUniforms, withDissolve } from '../fighterMaterials'
-import { RigidBatch } from '../RigidBatch'
+import { createBodyScratch, driveBody, useSculptedBody } from '../fighterBody'
 import { FIGHTER_RIGS } from '../registry'
 import { SkeletonLines } from '../SkeletonLines'
 import { driveFighter, useFighterRigObject } from '../useFighterRig'
-import { AERON_COLORS, AERON_PROPORTIONS, buildAeronBody } from './buildAeronBody'
+import { AERON_PROPORTIONS } from './aeronDesign'
 
 // The striking hand and the kicking foot only: more trails would bury the silhouette.
 const TRAILED: JointName[] = ['handR', 'footL']
 const GHOST_RATE = 30
-const ACCENT = new Color(...AERON_COLORS.accent)
-const EYE = new Color(...AERON_COLORS.eye)
+const KEY_DIR = new Vector3(-0.5, 0.75, 0.6).normalize()
+const RIM_DIR = new Vector3(-0.4, 0.6, -1).normalize()
 
 /**
- * AERON (engine id `velocity`). A posed, IK-planted rig drawn through a rigid batch, with an
+ * AERON (engine id `velocity`). A sculpted, skinned body on the posed, IK-planted rig, with an
  * energy scarf and a waist sash that answer his motion, limb trails only at real speed, an
  * energy skeleton that leads every reconstruction, a face/key light, and the Code Core.
  */
@@ -38,46 +36,36 @@ export function AeronFighter() {
   const dpr = useThree((s) => s.viewport.dpr)
   const camera = useThree((s) => s.camera)
   const fr = useFighterRigObject(AERON_PROPORTIONS)
-  const uniforms = useMemo(() => createFighterUniforms(AERON_COLORS.dissolve), [])
-  const body = useMemo(() => buildAeronBody(fr.rig, uniforms, AERON_PROPORTIONS), [fr, uniforms])
-  const batch = useMemo(() => new RigidBatch(fr.outer, 'velocity', body.materials), [fr, body])
+  const body = useSculptedBody('aeron', fr, profile.tier)
   useEffect(() => {
     FIGHTER_RIGS.velocity = fr.rig
     return () => void (FIGHTER_RIGS.velocity = null)
   }, [fr])
-  useEffect(
-    () => () => {
-      batch.dispose()
-      disposeGeometries(fr.outer)
-      Object.values(body.materials).forEach((m) => m.dispose())
-    },
-    [fr, body, batch],
-  )
 
   // Secondary motion: the energy scarf (from the back of the neck) and the waist sash.
   const cloth = useMemo(() => {
-    const scarfMat = new MeshBasicMaterial({ color: new Color(0.16, 0.8, 1.1), vertexColors: true, transparent: true, opacity: 0.5, blending: AdditiveBlending, depthWrite: false, side: DoubleSide })
+    const scarfMat = new MeshBasicMaterial({ color: new Color(0.16, 0.8, 1.1), vertexColors: true, transparent: true, opacity: 0.55, blending: AdditiveBlending, depthWrite: false, side: DoubleSide })
     const scarf = new ClothStrips(
       [
-        { anchor: fr.rig.joints.neck, offset: new Vector3(0.03, 0.03, -0.06), length: 1.25, segments: 18, width: 0.06, tipWidth: 0.25, facing: 'camera', rest: new Vector3(0.1, -0.6, -1) },
-        { anchor: fr.rig.joints.neck, offset: new Vector3(-0.03, 0.02, -0.06), length: 0.8, segments: 12, width: 0.045, tipWidth: 0.2, facing: 'camera', rest: new Vector3(-0.1, -0.7, -1) },
+        { anchor: fr.rig.joints.neck, offset: new Vector3(0.05, 0.05, -0.07), length: 1.35, segments: 20, width: 0.07, tipWidth: 0.28, facing: 'camera', rest: new Vector3(0.1, -0.5, -1) },
+        { anchor: fr.rig.joints.neck, offset: new Vector3(-0.05, 0.04, -0.07), length: 0.95, segments: 14, width: 0.05, tipWidth: 0.22, facing: 'camera', rest: new Vector3(-0.1, -0.6, -1) },
       ],
       scarfMat,
       { gradient: true },
     )
     scarf.drag = 2.4
-    scarf.gravityScale = 0.35
-    const sashMat = withDissolve(new MeshStandardMaterial({ color: 0x18323d, roughness: 0.8, side: DoubleSide, emissive: new Color(0x02090c) }), uniforms, 'aeron-sash')
+    scarf.gravityScale = 0.3
+    const sashMat = new MeshStandardMaterial({ color: 0x0b1418, roughness: 0.8, side: DoubleSide, emissive: new Color(0x021014) })
     const sash = new ClothStrips(
       [
-        { anchor: fr.rig.joints.hips, offset: new Vector3(0.12, 0.0, -0.06), length: 0.42, segments: 7, width: 0.09, tipWidth: 0.6, rest: new Vector3(0.3, -1, -0.4) },
-        { anchor: fr.rig.joints.hips, offset: new Vector3(0.08, -0.01, -0.09), length: 0.32, segments: 6, width: 0.07, tipWidth: 0.5, rest: new Vector3(0.1, -1, -0.5) },
+        { anchor: fr.rig.joints.hips, offset: new Vector3(0.13, 0.02, -0.07), length: 0.46, segments: 8, width: 0.09, tipWidth: 0.6, rest: new Vector3(0.3, -1, -0.4) },
+        { anchor: fr.rig.joints.hips, offset: new Vector3(0.08, 0.01, -0.1), length: 0.36, segments: 7, width: 0.07, tipWidth: 0.5, rest: new Vector3(0.1, -1, -0.5) },
       ],
       sashMat,
     )
     sash.drag = 1.8
     return { scarf, sash, scarfMat, sashMat }
-  }, [fr, uniforms])
+  }, [fr])
   useEffect(
     () => () => {
       cloth.scarf.dispose()
@@ -103,7 +91,16 @@ export function AeronFighter() {
   useEffect(() => () => ghosts.dispose(), [ghosts])
 
   const scratch = useMemo(
-    () => ({ p: new Vector3(), key: new Vector3(), settled: false, visible: false, lastGhost: -1, colliders: [{ center: new Vector3(), radius: 0.2 }, { center: new Vector3(), radius: 0.17 }, { center: new Vector3(), radius: 0.15 }] as Collider[] }),
+    () => ({
+      p: new Vector3(),
+      key: new Vector3(),
+      look: new Vector3(),
+      settled: false,
+      visible: false,
+      lastGhost: -1,
+      body: createBodyScratch(),
+      colliders: [{ center: new Vector3(), radius: 0.21 }, { center: new Vector3(), radius: 0.18 }, { center: new Vector3(), radius: 0.16 }] as Collider[],
+    }),
     [],
   )
   useEffect(
@@ -112,6 +109,7 @@ export function AeronFighter() {
         ghosts.clear()
         scratch.visible = false
         scratch.settled = false
+        scratch.body.valid = false
       }),
     [engine, ghosts, scratch, cloth],
   )
@@ -121,16 +119,13 @@ export function AeronFighter() {
     const { fx, skeletonDebug } = useExperience.getState()
     const fxOn = fx === 'full'
     driveFighter(f, fr, AERON_POSES, AERON_POSES.guard, engine)
-    body.hands.L.fist.userData.batchHidden = fr.rig.handL !== 'fist'
-    body.hands.L.open.userData.batchHidden = fr.rig.handL === 'fist'
-    body.hands.R.fist.userData.batchHidden = fr.rig.handR !== 'fist'
-    body.hands.R.open.userData.batchHidden = fr.rig.handR === 'fist'
-    batch.update(fr.outer.visible)
-    uniforms.uReveal.value = f.reveal
-
-    const e = 0.55 + f.energy * 0.8
-    body.materials.accent.emissive.copy(ACCENT).multiplyScalar(e)
-    body.materials.eye.emissive.copy(EYE).multiplyScalar(0.8 + f.energy * 0.4)
+    const dt = engine.playing ? engine.dt * engine.timeScale : 0
+    if (body) {
+      // Eyes on NOX (his head), or on the anchor while it flies.
+      const nox = FIGHTER_RIGS.void
+      const look = engine.state.anchor.visible > 0.5 && engine.state.anchor.held < 0.5 ? scratch.look.copy(engine.state.anchor.position) : nox ? nox.jointWorld('head', scratch.look) : null
+      driveBody(body, f, fr, { time: engine.elapsed, dt, camera, lookAt: look, seed: 0, glow: fxOn ? 1 : 0.7, rimStrength: 0.25 + engine.state.lights.rimVelocity * 0.55, rimDir: RIM_DIR, keyDir: KEY_DIR }, scratch.body)
+    }
 
     // Energy skeleton: leads the reconstruction (visible before the body), and review debug.
     const lead = smoothstep(0.0, 0.08, f.reveal) * (1 - smoothstep(0.35, 0.75, f.reveal))
@@ -142,7 +137,6 @@ export function AeronFighter() {
     light.intensity = f.reveal * (0.25 + f.energy * 0.6)
 
     // Cloth.
-    const dt = engine.playing ? engine.dt * engine.timeScale : 0
     fr.rig.jointWorld('chest', scratch.colliders[0].center)
     fr.rig.jointWorld('hips', scratch.colliders[1].center)
     fr.rig.jointWorld('spine', scratch.colliders[2].center)
@@ -157,9 +151,9 @@ export function AeronFighter() {
     cloth.sash.step(dt, scratch.colliders)
     // The scarf snaps in last on a reconstruction.
     cloth.scarf.write(camera, smoothstep(0.82, 1, f.reveal))
-    cloth.scarf.mesh.visible = f.reveal > 0.82
+    cloth.scarf.mesh.visible = f.reveal > 0.82 && f.phase < 0.5
     cloth.sash.write(camera, 1)
-    cloth.sash.mesh.visible = f.reveal > 0.02
+    cloth.sash.mesh.visible = f.reveal > 0.3
 
     // Limb trails: only at real speed, short, fading fast; and afterimages at extreme speed.
     const speed = engine.derived.velocitySpeed
@@ -185,7 +179,7 @@ export function AeronFighter() {
 
   return (
     <>
-      <primitive object={batch.group} dispose={null} />
+      <primitive name="velocity" object={fr.outer} dispose={null} />
       <primitive object={light} dispose={null} />
       <primitive name="velocity-cloth" object={cloth.scarf.mesh} dispose={null} />
       <primitive name="velocity-cloth" object={cloth.sash.mesh} dispose={null} />

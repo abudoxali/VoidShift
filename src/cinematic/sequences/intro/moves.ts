@@ -104,3 +104,13 @@ export function dash(ctx: SegmentContext, id: FighterId, to: V3, local: number, 
   moveTo(ctx, id, to, local, duration, 'expo.in')
   speedLines(ctx, local, duration, angle, 0.7)
 }
+
+/** Facial expression transition (same build-time memory as `pose`). */
+export function face(ctx: SegmentContext, id: FighterId, name: string, local: number, duration = 0.12): void {
+  const f = fighter(ctx, id)
+  const key = `face:${id}`
+  const previous = (ctx.memory.get(key) as string | undefined) ?? f.expr
+  ctx.memory.set(key, name)
+  ctx.tl.set(f, { exprFrom: previous, expr: name, exprBlend: 0 }, ctx.at(local))
+  ctx.tl.to(f, { exprBlend: 1, duration: Math.max(duration, 0.001), ease: 'power2.out' }, ctx.at(local))
+}

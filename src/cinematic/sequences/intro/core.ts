@@ -2,7 +2,7 @@ import { shot } from '../../camera/shot'
 import { CUES } from '../../engine/cues'
 import type { PhaseSegment } from '../../engine/CinematicTimeline'
 import { MARKS } from './marks'
-import { moveTo, pose, tween } from './moves'
+import { face, moveTo, pose, tween } from './moves'
 
 /**
  * SCENES 10 + 11 — CODE CORE → FINAL STRIKE (1.3 s).
@@ -18,6 +18,7 @@ export const coreSegment: PhaseSegment = {
     const c = state.core
     ctx.scene('core', 'Code Core', 0)
     shot(ctx, 'CORE_HERO', 0)
+    face(ctx, 'velocity', 'strain', 0.1, 0.3)
     ctx.cue(CUES.CORE_FORM, 0)
     tl.to(c, { charge: 0.7, duration: 0.3, ease: 'power2.out' }, at(0))
     tl.to(c, { charge: 1, duration: 0.45, ease: 'power1.in' }, at(0.3))

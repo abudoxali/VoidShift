@@ -2,7 +2,7 @@ import { shot } from '../../camera/shot'
 import { BURST, CUES } from '../../engine/cues'
 import type { PhaseSegment } from '../../engine/CinematicTimeline'
 import { MARKS, YAW } from './marks'
-import { burst, moveTo, pose, tween } from './moves'
+import { burst, face, moveTo, pose, tween } from './moves'
 
 /**
  * SCENES 05 + 06 — FAILED STRATEGY → ANCHOR (2.7 s).
@@ -23,6 +23,8 @@ export const strategySegment: PhaseSegment = {
     moveTo(ctx, 'velocity', MARKS.reset, 0.0, 0.35, 'power2.out')
     tween(ctx, 'velocity', { yaw: YAW.east }, 0.0, 0.3, 'power2.out')
     pose(ctx, 'void', 'confident', 0.25, 0.4, 'power2.inOut')
+    face(ctx, 'void', 'confident', 0.3, 0.3)
+    face(ctx, 'velocity', 'narrow', 0.4, 0.25)
     pose(ctx, 'velocity', 'think', 0.36, 0.3, 'power2.inOut')
     shot(ctx, 'AERON_THINK', 0.45)
     // The decision: a flicker in the eyes.
@@ -51,6 +53,8 @@ export const strategySegment: PhaseSegment = {
 
     // NOX's eyes follow it past his head.
     pose(ctx, 'void', 'watch', 1.8, 0.16, 'power2.out')
+    face(ctx, 'void', 'tracking', 1.8, 0.1)
+    face(ctx, 'velocity', 'focus', 1.0, 0.2)
     shot(ctx, 'NOX_WATCH', 1.8)
 
     // Planted: a beacon behind him.
@@ -61,6 +65,7 @@ export const strategySegment: PhaseSegment = {
     tl.to(a, { glow: 0.5, duration: 0.4 }, at(2.25))
     shot(ctx, 'ANCHOR_PLANT', 2.06)
     pose(ctx, 'void', 'guard', 2.4, 0.25, 'power2.inOut')
+    face(ctx, 'void', 'confident', 2.4, 0.3)
     pose(ctx, 'velocity', 'lowGuard', 2.3, 0.3, 'power2.inOut')
   },
 }

@@ -1,4 +1,4 @@
-import { Group, Matrix4, Quaternion, Vector3, type Object3D } from 'three'
+import { Bone, Group, Matrix4, Quaternion, Vector3, type Object3D } from 'three'
 import { blendPoses, type CompiledPose, type HandShape } from './pose'
 import { JOINTS, JOINT_INDEX, PARENT, jointOffsets, type JointName, type Proportions } from './skeleton'
 
@@ -18,7 +18,7 @@ export interface ProceduralLayers {
 export class CharacterRig {
   /** Positioned/rotated in the world by the fighter (position, yaw, pitch, roll). */
   readonly root = new Group()
-  readonly joints: Readonly<Record<JointName, Group>>
+  readonly joints: Readonly<Record<JointName, Bone>>
   private readonly rest: Readonly<Record<JointName, Vector3>>
   private readonly blended = { rotations: JOINTS.map(() => new Quaternion()), hipsOffset: new Vector3() }
   private readonly tmpQ = new Quaternion()
@@ -28,10 +28,10 @@ export class CharacterRig {
 
   constructor(readonly proportions: Proportions) {
     const offsets = jointOffsets(proportions)
-    const joints = {} as Record<JointName, Group>
+    const joints = {} as Record<JointName, Bone>
     const rest = {} as Record<JointName, Vector3>
     for (const name of JOINTS) {
-      const g = new Group()
+      const g = new Bone()
       g.name = name
       g.position.set(...offsets[name])
       joints[name] = g

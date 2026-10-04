@@ -18,6 +18,7 @@ interface Window {
       seekScene(id: string): boolean
       replay(): void
     }
+    ready(): boolean
     seek(time: number): void
     pause(): void
     play(): void

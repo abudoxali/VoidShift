@@ -17,6 +17,10 @@ export interface ExperienceState {
   rendererError: string | null
   /** Live review mode (?review=1): developer panel, scene jumps. Never shown to visitors. */
   review: boolean
+  /** Development lab (?review=1&lab=characters|animation); null for visitors. */
+  lab: 'characters' | 'animation' | null
+  /** Both fighters' sculpted geometry is generated (the clock is held until then). */
+  charactersReady: boolean
   /** Full FX, or characters + choreography only (?fx=off): no particles, trails, glyph debris or post. */
   fx: 'full' | 'off'
   skeletonDebug: boolean
@@ -44,6 +48,8 @@ export const useExperience = create<ExperienceState>()((set, get) => ({
   debug: false,
   rendererError: null,
   review: false,
+  lab: null,
+  charactersReady: false,
   fx: 'full',
   skeletonDebug: false,
   cameraDebug: false,

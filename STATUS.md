@@ -2,177 +2,210 @@
 
 ## Project
 
-VoidShift is a real-time, code-driven cinematic web experience. The website *is* the animation. Two original characters fight in a short, fast, deterministic sequence rendered live in WebGL (three.js + React Three Fiber). No anime characters, frames, models, logos or audio are reproduced.
+VoidShift is a real-time, code-driven cinematic web experience. The website *is* the animation. Two original characters fight in a short, fast, deterministic sequence rendered live in WebGL (three.js + React Three Fiber). No anime characters, frames, models, logos or audio are reproduced, and no external character assets are used: both fighters are sculpted in code.
 
 - **AERON** (internal id `velocity`): precise, lean and fast. Vector Dash, Coordinate Anchor, Blink Reconstruction, Momentum Redirect, Code Core.
 - **NOX** (internal id `void`): heavier, phasing and dimensional. Phase, Spatial Fold, Void Guard, Counter Shift, Fracture Field.
 
-The live GitHub Pages build is the source of visual truth: <https://abudoxali.github.io/VoidShift/>
-
 ## Current Completion
 
-**40%.** This is unchanged: it is the last accepted state. It will not move until the live rebuild passes the owner's review of the deployed site.
+**40%.** Unchanged: it is the last accepted state. It does not move until the owner visually accepts the rebuilt live experience.
 
 ## Current State: VISUAL REBUILD / LIVE REVIEW
 
-The first Milestone 03 visuals (placeholder figures, unclear contact, environment overpowering the fight) were rejected. MP4/video export work is stopped and its code removed. Work now follows this loop: inspect → implement → build → deploy to Pages → inspect the deployed site in motion (desktop, phone, `?fx=off`) → fix → redeploy.
+Development is local and live (`npm run dev`, browser + HMR). GitHub Pages is the remote review surface. No video export.
 
-Priority order: character identity → animation → choreography → camera → lighting → VFX → environment.
+Priority order: character quality → animation → lighting / world → choreography → camera → VFX.
 
 ### Review URLs
 
-| What | URL |
+Local: `http://localhost:5173/`. The same paths work on <https://abudoxali.github.io/VoidShift/>.
+
+| What | Path |
 |---|---|
-| Live | <https://abudoxali.github.io/VoidShift/> |
-| Review mode | <https://abudoxali.github.io/VoidShift/?review=1> |
-| Character sheet / reveal | <https://abudoxali.github.io/VoidShift/?review=1&sheet=characters> |
-| Arrival | <https://abudoxali.github.io/VoidShift/?review=1&scene=arrival> |
-| Close combat | <https://abudoxali.github.io/VoidShift/?review=1&scene=close-combat> |
-| Teleport | <https://abudoxali.github.io/VoidShift/?review=1&scene=teleport> |
-| Code Core | <https://abudoxali.github.io/VoidShift/?review=1&scene=core> |
-| Impact | <https://abudoxali.github.io/VoidShift/?review=1&scene=impact> |
-| Readability test | append `&fx=off` to any of the above |
+| Live | `/` |
+| Review mode | `/?review=1` |
+| A scene | `/?review=1&scene=<id>`: `arrival, standoff, first-attack, close-combat, strategy, anchor, second-attack, teleport, reversal, core, strike, impact, aftermath` |
+| Readability test | append `&fx=off` |
+| Character lab | `/?review=1&lab=characters` |
+| Character lab, direct | `&fighter=nox&view=face&pose=guard&light=standoff&face=strain&tier=high` |
 
-All 13 scene ids are valid for `scene=`: `arrival, standoff, first-attack, close-combat, strategy, anchor, second-attack, teleport, reversal, core, strike, impact, aftermath`.
+Character lab parameters:
 
-### Review mode (`?review=1`, hidden from visitors)
+- views: `front, three-quarter, side, back, face, face-34, hands`;
+- lights: `studio, arena, standoff, core, flat`;
+- faces: `neutral, focus, narrow, determined, strain, recover, threat, tracking, confident, surprise, pain`;
+- toggles: `&wireframe`, `&skeleton`.
 
-The panel offers:
+The lab is a development tool. It is only reachable with `review` in the URL and is never shown to visitors. Its panel offers fighter, view, pose (the full pose library), expression, lighting preset, wireframe, skeleton, turntable and mesh tier, plus triangle / generation-time / draw-call readouts. Mouse drag orbits; the wheel zooms.
 
-- Play/Pause, Restart, previous/next shot, a timeline scrubber, and a scene selector.
-- Readouts for time, scene and shot.
-- An FX full/off toggle.
-- Camera debug (thirds, plus shot name, position, target and FOV).
-- A collapse button: the panel folds to a one-line pill (time and shot) so it never covers the frame on phones.
-- Skeleton debug (energy skeleton lines).
-- Slow motion ×0.25.
-- A quality tier selector.
+An animation lab (`lab=animation`) is not built yet.
 
-Scene jumps seek the deterministic timeline, so a jump equals seeking to the scene's time (tested).
+## Character System (rebuilt)
 
-`?fx=off` removes everything that is not a character or the floor: distortion, bloom, flash, invert, speed lines, radial rays, grain, bursts, impact debris, glyphs, background field, trails, ghosts, and Code Core arcs.
+The old visible layer (lofted superellipse parts, rigid-batched) was replaced. The skeleton, pose library, IK, timeline and FX hooks are unchanged.
 
-## Character System
+### Sculpting pipeline (`src/cinematic/characters/sculpt/`)
 
-- **Anatomy:**
-  - Lofted superellipse bodies: head, face plane, neck, shoulders, chest, waist, pelvis, arms, hands and legs.
-  - The feet are rigid parts on an 18-joint rig.
-  - The head (`features.ts`) has a skull loft, brow ridge, cheek planes, nose, jaw, chin, ears, eye sockets, emissive eyes (kept below bloom blow-out) and a mouth line.
-- **Hands:** separate open and fist geometries, switched per pose (`hands: open | fist | blade`). The hidden variant is collapsed in the batch.
-- **AERON:**
-  - narrow cyan eyes and swept crystalline hair plates;
-  - a dark fitted suit with cyan seams, an asymmetric shoulder plate, forearm armour and reinforced boots;
-  - a camera-facing energy scarf (2 Verlet strips) and a cloth waist sash (2 strips).
-- **NOX:**
-  - broader proportions, a hood and mantle, a fractured half-mask with a visible jaw, and narrow violet/red eyes;
-  - layered armour with broken plates and asymmetric shoulders;
-  - shoulder fragments that flicker when he phases, and 5 orbiting shards;
-  - a 6-strip cloak with body colliders, plus an additive echo body while phased.
-- **Rigid batching:** every fighter part is skinned in one draw per material (`RigidBatch`, per-part matrices in a float texture).
-- **Poses:**
-  - `PoseSpec` with hips, joints, hand shapes and planted feet;
-  - two-bone leg IK keeps planted feet fixed (< 1 cm drift, tested);
-  - AERON has 25 poses and NOX 17.
-- **Dissolve / reconstruction:** a world-noise dissolve led by an energy skeleton (skeleton → fragments → body → scarf).
+1. **Signed-distance sculpting (`sdf.ts`).** Each fighter is an ordered list of primitives (ellipsoids, round / flattened cones, rounded boxes, tori) with smooth unions and subtractions. Each primitive is tagged with its bone and a paint zone.
+   - Primitives are authored in bone-local frames on an A-pose bind (`frames.ts`), so armpits and thighs stay open.
+2. **Surface nets mesher (`mesher.ts`).**
+   - Narrow-band block culling, vertices projected onto the surface, and gradient normals.
+   - Body, head, three hand shapes per side, armour and hair cap are meshed separately.
+3. **Armour.** Shells offset from the body surface and cut by region volumes, with bevelled edges and their hidden inner faces removed. Shells are meshed at least 2.4 cells thick so thin plates never tear.
+   - Body skin under a covering layer (AERON's coat, NOX's cuirass and gauntlets) is removed.
+4. **Skin weights from the sculpt (`skin.ts`).** Each bone's distance is taken from its own primitives with exponential falloff and the top 4 influences are kept. Joints blend where limb volumes meet; plates can be rigid.
+5. **Hair (`hair.ts`).**
+   - Flattened, tapered locks swept along Catmull-Rom curves (lens cross-section with a ridge), plus a scalp cap.
+   - Per-vertex root→tip and strand tangent drive the gradient, the anisotropic highlight and tip lag.
+6. **Assembly (`SculptedFighter.ts`).** Four `SkinnedMesh`es per fighter (body + hands, head, hair, armour) share one skeleton built from the rig's joints, which are now `Bone`s. That makes 4 draws per fighter.
+7. **Baking.** `npm run bake` writes `public/characters/<id>-<tier>.bin.gz`.
+   - Format: int16 positions, int8 normals and strands, uint8 weights / zones, gzipped. Sizes: AERON 1.35 MB (HIGH) / 0.9 MB (LITE); NOX 1.9 MB / 1.2 MB.
+   - At runtime the loader takes the baked file when its design signature matches. Otherwise (a design edited in development) it regenerates in a Web Worker.
+   - A unit test fails if a design changes without a re-bake.
+   - The cinematic clock is held until both fighters are loaded (`CharacterGate`).
+8. **Material (`material.ts`).** An extension of `MeshStandardMaterial`, so every stage, energy, Code Core and impact light still applies. It adds:
+   - per-zone albedo / roughness / metalness / glow;
+   - a design paint pass in bind space (panels, piping, seams, fracture veins, crystal cores);
+   - a cel-style terminator per zone;
+   - an identity rim on the rim-light side;
+   - the dissolve (reveals, teleports);
+   - **phase slicing**: the body splits into displaced, flickering horizontal slices with energy-coloured edges;
+   - hand-shape switching;
+   - a painted anime face on the head and Kajiya-Kay strand highlights on the hair.
+
+### Faces
+
+The face is painted in head space:
+
+- almond eyes with an iris gradient, limbal ring, pupil, fibres, two catch lights and a glowing iris;
+- a heavy upper lash line with a wing, a lower lash line and a lid crease;
+- brows, a mouth and a strain pinch.
+
+Expressions (`expressions.ts`) are lid open / squint / brow raise / brow angle / mouth open / smile / strain, with a deterministic blink.
+
+- AERON: `neutral, focus, narrow, determined, strain, recover`.
+- NOX: `threat, tracking, confident, surprise, pain`.
+
+The timeline drives them per beat (`face()` in `moves.ts`):
+
+| Beat | Expression |
+|---|---|
+| Standoff | AERON focus → determined; NOX threat |
+| Failed strategy | NOX confident; AERON narrow |
+| Anchor throw | NOX tracking (eyes on the anchor) |
+| Reversal | NOX surprise |
+| Code Core | AERON strain |
+| Impact | NOX pain |
+| Aftermath | AERON recover |
+
+Eyes track the opponent's head, or the anchor while it flies.
+
+### AERON
+
+- Lean, about 1.75 m with hair.
+- Fitted graphite undersuit; short pale coat with a high flared collar, black chevron and flank inlays, and cyan piping.
+- Layered pauldrons; forearm guards with cuffs; knee guards, greaves and toe caps; a belt with a cyan buckle core.
+- Armoured gloves with three hand shapes.
+- Swept silver hair: crown spikes, top locks, long bangs and side locks.
+- Bright cyan eyes.
+- Energy scarf and waist sash (Verlet strips).
+
+### NOX
+
+- Taller and broader, about 1.85 m with crown.
+- Black lacquered cuirass, dark-violet fauld and tassets, a heavy mantle and a standing collar.
+- A massive three-layer left pauldron grown through with violet crystal; gauntlets, greaves and sabatons.
+- Violet fracture veins through the armour.
+- A mature face with a square jaw, under a fractured crystal half-mask over his right side. The jaw, mouth and left eye stay readable.
+- A broken crystal crown; long dark hair falling back to the shoulders.
+- Violet eyes.
+- Cloak strips. While phasing: phase slices plus a faint skinned echo body.
+
+### Poses / animation
+
+- Unchanged: `PoseSpec` pose library with two-bone leg IK. AERON has 25 poses, NOX 17.
+- New: hair tip lag from head motion.
 
 ## Choreography (18.0 s, 13 scenes)
 
-| # | Scene | Content |
-|---|---|---|
-| 1 | Arrival | NOX is already there; AERON reconstructs (skeleton first). |
-| 2 | Standoff | Eye inserts on each fighter, then a low stance. |
-| 3 | First attack | Dash, lead step, right straight. NOX phases at contact only; the fist passes through his upper torso (slowed at penetration only). NOX reforms and counters with an elbow; AERON ducks under it. |
-| 4 | Close combat | A body kick blocked low, a grab that misses, a rotate-out, and a spinning kick through NOX's head as he phases. |
-| 5 | Failed strategy | Back-step, then a close-up on AERON's eyes: ordinary hits fail. |
-| 6 | Anchor | A geometric blade-beacon forms in his hand. He throws it with a full arm action; NOX's eyes follow it; it plants behind NOX. |
-| 7 | Second attack | AERON dashes in. |
-| 8 | Teleport | Fragmentation → light collapse → empty frame → anchor flare → reconstruction behind and above NOX. |
-| 9 | Reversal | NOX turns head → shoulders → guard, too late. |
-| 10 | Code Core | Charges in AERON's hand (0→1 in under 1 s) and lights his face, hand and NOX. |
-| 11 | Final strike | Shoulder → torso → arm → core, driven into NOX's upper back. |
-| 12 | Impact | Contact first (bodies readable for ~0.15 s), then light, shock, crater and debris symbols. NOX collapses. |
-| 13 | Aftermath | AERON lands and recovers; exposure falls. |
+The beats are unchanged from the last accepted state:
 
-Contact is tested geometrically on the real posed rigs: the punch passes through the chest while phased, the elbow passes over the ducked head, the kick reaches the head within 0.3 m, the anchor leaves the hand within 0.2 m, and the core is within 0.25 m of the neck at contact.
+1. arrival
+2. standoff
+3. first attack (the punch passes through phased NOX)
+4. close combat
+5. failed strategy
+6. anchor throw
+7. second attack
+8. teleport
+9. reversal
+10. Code Core
+11. final strike
+12. impact
+13. aftermath
 
-## Camera
+The only addition is facial acting.
 
-- There are 28 named shots, each a hard cut with a stated subject.
-  - Full-body shots declare `fullBody` subjects.
-  - A framing test projects heads, hands and feet through the real camera and the 2.2:1 letterbox for every frame at 30 Hz; at most 2 edge frames are tolerated.
-- Shot types: wide, two-shot, profile, low, OTS, eye close-ups, hand insert, and hero.
-- Portrait recomposes only the camera; the choreography is identical (tested).
+## World / Lighting (this pass)
 
-## Lighting
-
-- A camera-relative soft key keeps faces readable without raising exposure.
-- Rim lights are narrow spots aimed at their own fighter: cyan for AERON and desaturated violet for NOX. They no longer tint the other fighter's face.
-- Limb trails are limited to the striking hand and the kicking foot, and only at real speed, so the silhouette stays readable.
-- Each fighter carries an energy light at the chest. The Code Core and the impact carry their own lights.
-- The atmosphere steps back during the first attack and close combat, and returns at the strategy beat.
-- **Impact** (live review fix): the grade flash was washing the whole frame grey at impact +0.2 s.
-  - The flash is now a short 0.12 accent.
-  - Radial rays begin only after the cut to the wide shot, at low strength.
-  - The contact dome and core flash are smaller.
-  - There is less debris.
-  - In both impact shots the bodies stay readable: NOX's recoil and eyes in the hero shot, his drop to one knee in the wide.
+- **Floor:** dark polished surface.
+  - The lattice dots are much fainter; thin continuous cyan seams run every 4 m.
+  - Fresnel horizon sheen with wet-patch variation.
+  - View-aligned reflection streaks of the fighters' energy light, the Code Core and the impact light.
+- **Lighting:** the stage rig is unchanged. Characters now answer it with cel terminators and identity rims (cyan AERON, violet NOX).
+- **Camera:** the eye inserts were re-aimed for the new head heights.
 
 ## Draw Calls
 
-Measured on the deployed build with `renderer.info` during frame-stepped playback of the whole fight. Totals include post-processing passes.
+Measured on a real GPU (RTX 4070, headless Chromium / ANGLE D3D11), 1280×720, every 0.25 s of the fight, post-processing included:
 
 | Tier | Range | Peak |
 |---|---|---|
-| ULTRA 1280×720 | 27–49 | impact |
-| LITE 1280×720 | 23–45 | impact |
+| ULTRA | 23–41 | Code Core / impact |
+| LITE | 15–37 | Code Core / impact |
 
-This pass brought ULTRA down from 35–61 by:
+The previous build measured ULTRA 27–49 and LITE 23–45. Each fighter body is 4 draws.
 
-- merging the anchor from 9 draws to 4;
-- reducing limb trails from 4 to 2, and drawing them only while visible;
-- hiding spent impact layers;
-- using 6 bloom mip levels instead of 8.
-
-Fighters render in ≤ 6 (AERON) and ≤ 8 (NOX) draws (tested). No FPS figure is claimed: only software rendering (SwiftShader) was available, and no real-GPU measurement has been made.
+Triangles: about 160k (AERON) + 220k (NOX) at HIGH / ULTRA, and 100k + 145k at LITE. No FPS figure is claimed yet.
 
 ## Tests / Verification
 
-- `npm run typecheck`, `npm run lint`, `npm test` (91 unit tests) and `npm run build` all pass.
-- `npm run test:e2e` passes 13/13:
-  - final hold at 3 viewports;
-  - frame-stepped playback (first attack, teleport, impact) at desktop and phone with no console errors;
-  - aftermath hold; skip/replay; reduced motion;
-  - no GPU-resource growth across quality switches and replays;
-  - **review panel hidden for visitors**;
-  - **review controls + scene URL**;
-  - **FX off renders the characters**;
-  - **no resource growth across repeated scene jumps**.
-- Unit coverage includes:
-  - structure (18–24 s, 13 scenes in order, ≥ 24 named cuts, no overlapping tweens);
-  - determinism (play ≡ seek; scene jump ≡ seek);
-  - cues once and in order, and cue suppression on seek;
-  - slow motion;
-  - choreography, framing and contact contracts;
-  - reduced motion (no shake, impact frames or speed lines; < 10 u/s);
-  - portrait;
-  - IK plant and hand shapes;
-  - batch draw budgets.
-- Live inspection is done with Playwright against the deployed site: desktop 1280×720, phone 390×844, and `?fx=off`.
+`npm run typecheck`, `npm run lint`, `npm test` (95 unit tests) and `npm run build` pass.
+
+New unit tests:
+
+- every baked fighter is current with its design (signature);
+- skin weights normalised, bone indices valid, all six hand variants present, standing heights;
+- an exact bind (skinned vertices equal the rest geometry at the bind pose; posing moves the head);
+- the quantised encode / decode roundtrip;
+- mesher accuracy;
+- expression / blink determinism.
+
+e2e:
+
+- `boot` now waits until both fighters are loaded.
+- Baseline at the start of this pass, on the untouched tree: 8/13 passed. All 5 failures were timeouts or races under SwiftShader on a heavily loaded machine; none was a logic failure.
+
+Developer tools (not part of the build):
+
+- `scripts/capture.mjs`: headless frame captures (real GPU);
+- `scripts/drawcalls.mjs`: draw-call sweep.
 
 ## Known Visual Weaknesses
 
-- The figures are procedural low-poly lofts: readable as two people with faces and costumes, but not yet at hand-sculpted quality. Facial planes are small at wide-shot distance.
-- Cloth is a light Verlet ribbon system: there is no self-collision, and the cloak can clip on extreme poses.
-- The teleport reconstruction and impact light are short. On a slow software renderer, single frames can look harsher than at 60 fps.
-- Hands at wide-shot distance read mainly by silhouette.
-- In the phone-portrait impact wide shot, the rays and floor cracks are still the brightest elements. The fighters are readable there but small.
-- NOX's phase echo (violet additive body) is bright in close shots and can dominate the frame for a few frames.
-- The reversal insert (looking up past NOX at AERON above) crops both bodies by design. It reads as an insert, not a full-body shot.
-- Audio is procedural placeholder.
-- Real-GPU performance has not been measured.
+- Faces are readable but still simple: the painted eyes read at close range only, and the head sculpt is generic. No dedicated facial rig beyond the painted expression parameters.
+- Armour and coat hems where a shell meets its region cut are ragged / frilly instead of crisp.
+- AERON's coat reads more like a pale breastplate than a garment. There are no cloth panels on the coat.
+- Hair: AERON's clumps are tusk-like and too uniform; NOX's long hair reads as strands. The silhouette still needs more mass and layering.
+- Animation is the old pose-to-pose system: no overlapping action, weight shift or follow-through layer yet (next priority).
+- Cloth is the old Verlet strip system (scarf, sash, cloak); no cloak sheet with collisions.
+- Lighting is the old stage rig: no shot-dependent lighting presets yet. The Code Core and impact VFX are unchanged from the previous pass.
+- No planar reflections (the floor reflections are faked).
+- Triangle counts are high for low-end phones (no decimation / LOD yet).
+- The animation lab (`lab=animation`) is not built.
 
 ## Repository / Commit State
 
-- Repository: `abudoxali/VoidShift`. Work branch: `claude/confident-curie-sydv8b`. Draft PR #1.
+- Repository: `abudoxali/VoidShift`. Work branch: `claude/confident-curie-sydv8b` (also the default branch). Draft PR #1.
 - Pages is deployed from the work branch by the `pages-preview.yml` workflow (`workflow_dispatch`, base `/VoidShift/`).
-- The default branch is still `claude/confident-curie-sydv8b`. A repository admin can change it under Settings → General → Default branch.

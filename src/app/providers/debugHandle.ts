@@ -10,6 +10,8 @@ export interface VoidShiftDebugHandle {
   scene: Scene | null
   /** Visible renderables per named subsystem (approximate draw-call sources; post passes excluded). */
   drawBreakdown(): Record<string, number>
+  /** Both fighters' sculpted geometry is loaded (the clock is held until then). */
+  ready(): boolean
   seek(time: number): void
   pause(): void
   play(): void
@@ -32,6 +34,7 @@ export function exposeDebugHandle(engine: CinematicEngine): () => void {
     renderer: null,
     scene: null,
     drawBreakdown: () => (handle.scene ? breakdown(handle.scene) : {}),
+    ready: () => useExperience.getState().charactersReady,
     seek: (t) => engine.seek(t),
     pause: () => engine.pause(),
     play: () => engine.play(),

@@ -1,5 +1,6 @@
 import { CinematicCameraRig } from '../camera/CinematicCameraRig'
 import { AeronFighter } from '../characters/Aeron/AeronFighter'
+import { CharacterGate } from '../characters/CharacterGate'
 import { NoxFighter } from '../characters/Nox/NoxFighter'
 import { Impact } from '../effects/impact/Impact'
 import { Bursts } from '../effects/particles/Bursts'
@@ -20,6 +21,7 @@ import { StageLights } from '../lighting/StageLights'
 export function FoundationScene() {
   return (
     <SceneController>
+      <CharacterGate />
       <CinematicCameraRig />
       <StageLights />
       <Atmosphere />
