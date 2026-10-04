@@ -78,6 +78,8 @@ for (const vp of VIEWPORTS) {
 
 for (const vp of [VIEWPORTS[0], VIEWPORTS[2]]) {
   test(`plays the first attack, teleport and impact frame-by-frame without errors (${vp.name})`, async ({ page }) => {
+    // Long software-rendered playthrough: skinned sculpted fighters take ~2.5 min under SwiftShader.
+    test.setTimeout(300_000)
     await page.setViewportSize({ width: vp.width, height: vp.height })
     const problems = collectProblems(page)
     await boot(page)
@@ -154,6 +156,8 @@ test('reduced motion: honours the system setting and the in-app toggle', async (
 })
 
 test('quality switches and replays do not leak GPU resources', async ({ page }) => {
+  // Long software-rendered playthrough: skinned sculpted fighters take ~2.5 min under SwiftShader.
+  test.setTimeout(300_000)
   const problems = collectProblems(page)
   await boot(page, 'debug&quality=high')
   const settle = async () => {
@@ -257,6 +261,8 @@ test('FX off: the fight still renders, characters only, without errors', async (
 })
 
 test('repeated scene jumps do not grow GPU resources', async ({ page }) => {
+  // Long software-rendered playthrough: skinned sculpted fighters take ~2.5 min under SwiftShader.
+  test.setTimeout(300_000)
   const problems = collectProblems(page)
   await boot(page, 'review=1&quality=high')
   const scenes = await page.evaluate(() => window.__VOIDSHIFT__!.engine.scenes.map((s) => s.id))
